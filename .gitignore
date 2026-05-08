@@ -1,0 +1,17 @@
+
+node_modules/
+.expo/
+ios/Pods/
+ios/build/
+ios/.xcode.env.local
+.gradle/
+build/
+android/app/build/
+android/.gradle/
+local.properties
+*.iml
+.idea/
+.vscode/
+.DS_Store
+.env
+*.db
