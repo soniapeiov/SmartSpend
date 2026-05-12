@@ -1,5 +1,14 @@
+/**MODIFIED ScanScreen.tsx
+ * added ActivityIndicator and { scanReceipt } from your ocr service to imports
+ * added isProcessing state
+ * handleContinue is now async and calls scanReceipt() before navigating
+ * removed the success alert from savePhotoToGallery
+ * continue button disables and shows a spinner while processing
+ * photo captured badge appears after photo is taken
+ * navigate to ReviewExpenseScreen with { total, date, imagePath } */
+
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, PermissionsAndroid, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, PermissionsAndroid, Platform, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/Navtypes';
@@ -12,12 +21,14 @@ import { CommonActions } from '@react-navigation/native';
 import { TabBar } from '../../components/TabBar';
 import { Camera, CameraType } from 'react-native-camera-kit';
 import { CameraRoll } from '@react-native-camera-roll/camera-roll';
+import { scanReceipt } from '../../services/ocr'; // added for OCR scanning
 
 type ScanScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const ScanScreen = () => {
   const navigation = useNavigation<ScanScreenNavigationProp>();
   const [photo, setPhoto] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);  // added state for processing indicator
   const cameraRef = React.useRef<any>(null);
 
   const handleNotification = () => {
@@ -49,7 +60,7 @@ const ScanScreen = () => {
           {
             name: 'Main',
             state: {
-              routes: [{ name: 'Home' }],
+              routes: [{ name: 'Home'}],
               index: 0,
             },
           },
@@ -63,7 +74,7 @@ const ScanScreen = () => {
       try {
         const androidVersion = Platform.Version;
         
-        // Android 13+ (API 33+) için READ_MEDIA_IMAGES
+        // Android 13+ (API 33+)
         if (androidVersion >= 33) {
           const granted = await PermissionsAndroid.request(
             'android.permission.READ_MEDIA_IMAGES' as any,
@@ -77,7 +88,7 @@ const ScanScreen = () => {
           );
           return granted === PermissionsAndroid.RESULTS.GRANTED;
         } else {
-          // Android 12 ve altı için WRITE_EXTERNAL_STORAGE
+          // Android 12 and below
           const granted = await PermissionsAndroid.request(
             PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
             {
@@ -109,35 +120,68 @@ const ScanScreen = () => {
 
       await CameraRoll.save(uri, { type: 'photo' });
       console.log('Photo saved to gallery:', uri);
-      Alert.alert('Success', 'Photo saved to gallery!');
     } catch (error) {
       console.error('Error saving photo to gallery:', error);
-      Alert.alert('Error', 'Failed to save photo to gallery');
     }
   };
 
   const handleTakePhoto = async () => {
+    console.log('Camera ref:', cameraRef.current); // check if ref is attached
     if (cameraRef.current) {
       try {
+        console.log('Attempting capture...'); // log before capture
         const result = await cameraRef.current.capture();
+        console.log('Capture result:', result); // check what's returned
         setPhoto(result.uri);
-        console.log('Photo taken:', result.uri);
-        
-        // Otomatik olarak galeri kaydet
+
+        // perform OCR scanning on the captured photo
         await savePhotoToGallery(result.uri);
       } catch (error) {
         console.error('Error taking photo:', error);
         Alert.alert('Error', 'Failed to take photo');
       }
+    } else {
+      console.log('Camera ref is null');
     }
   };
 
-  const handleContinue = () => {
-    if (photo) {
-      console.log('Continue to ReviewExpense with photo:', photo);
-      navigation.navigate('ReviewExpense');
-    } else {
-      Alert.alert('No Photo', 'Please take a photo first');
+  const handleContinue = async () => {
+    if (!photo) {
+      Alert.alert('No Photo', 'Please take a photo first.');
+      return;
+    }
+
+    try {
+      setIsProcessing(true); // start processing indicator
+
+      const result = await scanReceipt(photo);
+
+      navigation.navigate('ReviewExpenseScreen', {
+        total: result.total,
+        date: result.date,
+        imagePath: photo,
+      });
+    } catch (error) {
+      console.error(error);
+      Alert.alert(
+        'Scan Failed',
+        'Could not read the receipt. Would you like to enter the details manually?',
+        [
+          {
+            text: 'Enter Manually',
+            onPress: () => navigation.navigate('AddManuallyScreen', { 
+              editMode: false 
+            }),
+          },
+          {
+            text: 'Try Again',
+            style: 'cancel',
+            onPress: () => setPhoto(null),
+          },
+        ]
+      );
+    } finally {
+      setIsProcessing(false); // stop processing indicator
     }
   };
 
@@ -173,6 +217,12 @@ const ScanScreen = () => {
             style={styles.camera}
             cameraType={CameraType.Back}
           />
+          {/* Show confirmation when photo is taken */}
+          {photo && (
+            <View style={styles.photoCapturedBadge}>
+              <Text style={styles.photoCapturedText}>Photo captured</Text>
+            </View>
+          )}
         </View>
 
         {/* Aperture Button */}
@@ -194,12 +244,17 @@ const ScanScreen = () => {
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.continueButton}
+          {/* Continue button is disabled until a photo is taken, and shows loading indicator while processing */}
+          <TouchableOpacity
+            style={[styles.continueButton, (!photo || isProcessing) && styles.continueButtonDisabled]}
             activeOpacity={0.7}
             onPress={handleContinue}
+            disabled={!photo || isProcessing}
           >
-            <Text style={styles.continueButtonText}>Continue</Text>
+            {isProcessing
+              ? <ActivityIndicator color={colors.textSecondary} />
+              : <Text style={styles.continueButtonText}>Continue</Text>
+            }
           </TouchableOpacity>
         </View>
       </View>
@@ -263,6 +318,20 @@ const styles = StyleSheet.create({
   camera: {
     flex: 1,
   },
+  photoCapturedBadge: {
+    position: 'absolute',
+    bottom: 12,
+    alignSelf: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  photoCapturedText: {
+    fontSize: 13,
+    fontFamily: fonts.medium,
+    color: colors.textSecondary,
+  },
   apertureButtonContainer: {
     width: 59,
     height: 57,
@@ -301,6 +370,9 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  continueButtonDisabled: {
+    opacity: 0.4,
   },
   continueButtonText: {
     fontSize: 15,

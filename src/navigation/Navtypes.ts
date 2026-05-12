@@ -5,19 +5,21 @@ export type RootStackParamList = {
   SignUp: undefined;
   ForgotPassword: undefined;
   Main: undefined;
+
+  NotificationScreen: undefined;  
+
   GalleryScreen: undefined;      
   ScanScreen: undefined;          
-  NotificationScreen: undefined;  
-  ReviewExpense: {  
-    photoUri?: string;
+  AddReceiptScreen: undefined;
+  
+  ReviewExpenseScreen: {
+    total: string | null;
+    date: string | null;
+    imagePath: string;
     type?: 'scan' | 'gallery';
-    ocrData?: {
-      date?: string;
-      category?: string;
-      amount?: number;
-    };
   };
-  AddManuallyScreen: {  
+
+  AddManuallyScreen: {
     editMode?: boolean;
     expense?: {
       id: number;

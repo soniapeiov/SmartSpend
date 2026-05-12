@@ -1,5 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
+/**MODIFIED GalleryScreen.tsx
+ * added ActivityIndicator and { scanReceipt } from ocr service to imports
+ * added isProcessing state
+ * handleContinue is now async and calls scanReceipt() before navigating to ReviewExpenseScreen with { total, date, imagePath }
+*/
+
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/Navtypes';
@@ -10,18 +16,20 @@ import NotificationIcon from '../../assets/images/Notificationicon.svg';
 import { CommonActions } from '@react-navigation/native';
 import { TabBar } from '../../components/TabBar';
 import { launchImageLibrary, ImageLibraryOptions } from 'react-native-image-picker';
+import { scanReceipt } from '../../services/ocr';
 
 type GalleryScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const GalleryScreen = () => {
   const navigation = useNavigation<GalleryScreenNavigationProp>();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleNotification = () => {
     navigation.navigate('NotificationScreen');
   };
 
-  const handleGoBack = () => {
+  const handleGoBack = useCallback(() => {
     navigation.dispatch(
       CommonActions.reset({
         index: 0,
@@ -36,9 +44,9 @@ const GalleryScreen = () => {
         ],
       })
     );
-  };
+  }, [navigation]);
 
-  const handleChooseImage = () => {
+  const handleChooseImage =  useCallback(() => {
     const options: ImageLibraryOptions = {
       mediaType: 'photo',
       quality: 1,
@@ -57,21 +65,50 @@ const GalleryScreen = () => {
         console.log('Image selected:', response.assets[0].uri);
       }
     });
-  };
+  }, [handleGoBack]);
 
-  const handleContinue = () => {
-    if (selectedImage) {
-      console.log('Continue to ReviewExpense with image:', selectedImage);
-      navigation.navigate('ReviewExpense');
-    } else {
-      Alert.alert('No Image', 'Please select an image first');
+  // Updated to run OCR before navigating
+  const handleContinue = async () => {
+    if (!selectedImage) {
+      Alert.alert('No Image', 'Please select an image first.');
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+
+      const result = await scanReceipt(selectedImage);
+
+      navigation.navigate('ReviewExpenseScreen', {
+        total: result.total,
+        date: result.date,
+        imagePath: selectedImage,
+      });
+
+    } catch (error) {
+      console.error('Error processing receipt:', error);
+      Alert.alert(
+        'Scan Failed',
+        'Could not read the receipt. Would you like to enter the details manually?',
+        [
+          {
+            text: 'Enter Manually',
+            onPress: () => navigation.navigate('AddManuallyScreen', { 
+              editMode: false 
+            }),
+          },
+          { text: 'Try Again', style: 'cancel' },
+        ]
+      );
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  // Ekran açılır açılmaz galeriyi aç
+  // Open gallery as soon as screen loads
   React.useEffect(() => {
     handleChooseImage();
-  }, []);
+  }, [handleChooseImage]);
 
   return (
     <View style={styles.wrapper}>
@@ -112,6 +149,7 @@ const GalleryScreen = () => {
             style={styles.chooseButton}
             activeOpacity={0.7}
             onPress={handleChooseImage}
+            disabled={isProcessing}
           >
             <Text style={styles.chooseButtonText}>Choose Another</Text>
           </TouchableOpacity>
@@ -119,13 +157,16 @@ const GalleryScreen = () => {
           <TouchableOpacity 
             style={[
               styles.continueButton,
-              !selectedImage && styles.continueButtonDisabled,
+              (!selectedImage || isProcessing) && styles.continueButtonDisabled,
             ]}
             activeOpacity={0.7}
             onPress={handleContinue}
-            disabled={!selectedImage}
+            disabled={!selectedImage || isProcessing}
           >
-            <Text style={styles.continueButtonText}>Continue</Text>
+            {isProcessing
+              ? <ActivityIndicator color={colors.textSecondary} />
+              : <Text style={styles.continueButtonText}>Continue</Text>
+            }
           </TouchableOpacity>
         </View>
       </View>

@@ -1,3 +1,8 @@
+/** MODIFIED ReviewExpenseScreen.tsx
+ * RouteProp<RootStackParamList, 'ReviewExpense'> changed to 'ReviewExpenseScreen' to match the actual screen name in Navtypes.ts
+ * photoUri now reads from route.params?.imagePath instead of route.params?.photoUri
+ * useEffect now reads route.params?.total into amount and route.params?.date into date, replacing the old ocrData object */
+
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, Image } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -19,7 +24,7 @@ import { CommonActions } from '@react-navigation/native';
 import { addExpense } from '../../data/mockData';  
 
 type ReviewExpenseScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
-type ReviewExpenseScreenRouteProp = RouteProp<RootStackParamList, 'ReviewExpense'>;
+type ReviewExpenseScreenRouteProp = RouteProp<RootStackParamList, 'ReviewExpenseScreen'>;
 
 type CategoryType = 'Food' | 'Other' | 'Transportation' | 'Home' | 'Shopping';
 
@@ -29,21 +34,19 @@ const ReviewExpenseScreen = () => {
   const navigation = useNavigation<ReviewExpenseScreenNavigationProp>();
   const route = useRoute<ReviewExpenseScreenRouteProp>();
   
-  const photoUri = route.params?.photoUri || '';
-  const ocrData = route.params?.ocrData || {};
+  // Updated to match what ScanScreen and GalleryScreen send
+  const photoUri = route.params?.imagePath || '';
 
   const [date, setDate] = useState('');
   const [category, setCategory] = useState('');
   const [amount, setAmount] = useState('');
   const [isCategoryModalVisible, setIsCategoryModalVisible] = useState(false);
 
+   // Pre-fill fields with OCR results
   useEffect(() => {
-    if (ocrData) {
-      if (ocrData.date) setDate(ocrData.date.replace(/\//g, ' / '));
-      if (ocrData.category) setCategory(ocrData.category);
-      if (ocrData.amount) setAmount(ocrData.amount.toString());
-    }
-  }, [ocrData]);
+    if (route.params?.total) setAmount(route.params.total);
+    if (route.params?.date) setDate(route.params.date.replace(/\//g, ' / '));
+  }, [route.params]);
 
   const handleDateChange = (text: string) => {
     const cleaned = text.replace(/[^0-9]/g, '');
@@ -141,15 +144,15 @@ const ReviewExpenseScreen = () => {
     const [day, month, year] = cleanDate.split('/');
     
     const timestamp = new Date(
-      parseInt(year),
-      parseInt(month) - 1,
-      parseInt(day),
+      parseInt(year, 10),
+      parseInt(month, 10) - 1,
+      parseInt(day, 10),
       now.getHours(),
       now.getMinutes(),
       now.getSeconds()
     ).getTime();
 
-    const expenseType = route.params?.type || 'scan';
+    const expenseType = route.params?.type || 'scan'; // default to 'scan' if not provided
 
     addExpense({
       userId: 1,

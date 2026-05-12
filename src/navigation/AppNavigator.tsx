@@ -30,7 +30,7 @@ const AppNavigator = () => {
       <Stack.Screen name="GalleryScreen" component={GalleryScreen} />
       <Stack.Screen name="ScanScreen" component={ScanScreen} />
       <Stack.Screen name="NotificationScreen" component={NotificationScreen} />
-      <Stack.Screen name="ReviewExpense" component={ReviewExpenseScreen} />
+      <Stack.Screen name="ReviewExpenseScreen" component={ReviewExpenseScreen} />
     </Stack.Navigator>
   );
 };
