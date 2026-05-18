@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/Navtypes';
@@ -9,11 +9,13 @@ import GoBackIcon from '../../assets/images/Gobackicon.svg';
 import NotificationIcon from '../../assets/images/Notificationicon.svg';
 import LogoutIcon from '../../assets/images/Logouticon.svg';
 import { CommonActions } from '@react-navigation/native';
+import { useAuth } from '../../context/AuthContext';
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const ProfileScreen = () => {
   const navigation = useNavigation<ProfileScreenNavigationProp>();
+  const { logout, user } = useAuth();
 
   const handleNotification = () => {
     navigation.navigate('NotificationScreen');
@@ -36,9 +38,33 @@ const ProfileScreen = () => {
     );
   };
 
-  const handleLogout = () => {
-    console.log('Logout clicked');
-    navigation.navigate('Welcome');
+  // ✅ Firebase Logout
+  const handleLogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();  // ✅ Firebase + AuthContext temizle
+              console.log('✅ Logout successful');
+              // ✅ AppNavigator otomatik olarak Auth ekranlarına yönlendirecek
+            } catch (error) {
+              console.error('❌ Logout error:', error);
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   return (
@@ -66,16 +92,18 @@ const ProfileScreen = () => {
 
       {/* Main Content */}
       <View style={styles.container}>
-        <Text style={styles.userName}>John Smith</Text>
+        <Text style={styles.userName}>
+          {user?.fullName || 'User'}
+        </Text>
 
         <TouchableOpacity 
-  style={styles.logoutButton}
-  activeOpacity={0.7}
-  onPress={handleLogout}
->
-  <LogoutIcon width={57} height={53} />
-  <Text style={styles.logoutText}>Logout</Text>
-</TouchableOpacity>
+          style={styles.logoutButton}
+          activeOpacity={0.7}
+          onPress={handleLogout}
+        >
+          <LogoutIcon width={57} height={53} />
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -92,7 +120,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 36,
     paddingTop: 69,
-    marginBottom: 47,  // Profile ile açık yeşil alan arası
+    marginBottom: 47,
   },
   goBackButton: {
     width: 19,
@@ -118,7 +146,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
-    paddingTop: 47,  // 95'ten 47'ye (header marginBottom ile aynı)
+    paddingTop: 47,
     alignItems: 'center',
   },
   userName: {

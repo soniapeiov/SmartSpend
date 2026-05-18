@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/Navtypes';
 import { colors } from '../theme/colors';
 import { fonts } from '../theme/fonts';
-import Icon from 'react-native-vector-icons/FontAwesome';  
+import Icon from 'react-native-vector-icons/FontAwesome';
+import { useAuth } from '../context/AuthContext';
 
 type SignUpScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'SignUp'>;
 
 const SignUpScreen = () => {
   const navigation = useNavigation<SignUpScreenNavigationProp>();
+  const { signup } = useAuth();
+
+  // States
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('+');
@@ -18,6 +22,7 @@ const SignUpScreen = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleMobileChange = (text: string) => {
     if (!text.startsWith('+')) {
@@ -28,9 +33,94 @@ const SignUpScreen = () => {
     }
   };
 
-  const handleSignUp = () => {
-    console.log('Sign Up:', { fullName, email, mobile, password });
-    navigation.navigate('Main');
+  // Form validation
+  const validateForm = () => {
+    // Full Name
+    if (!fullName.trim()) {
+      Alert.alert('Error', 'Please enter your full name');
+      return false;
+    }
+    if (fullName.trim().length < 3) {
+      Alert.alert('Error', 'Full name must be at least 3 characters');
+      return false;
+    }
+
+    // Email
+    if (!email.trim()) {
+      Alert.alert('Error', 'Please enter your email');
+      return false;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return false;
+    }
+
+    // Mobile
+    if (!mobile || mobile === '+') {
+      Alert.alert('Error', 'Please enter your mobile number');
+      return false;
+    }
+    const cleanedMobile = mobile.replace(/\s/g, '');
+    if (cleanedMobile.length < 8) {
+      Alert.alert('Error', 'Please enter a valid mobile number');
+      return false;
+    }
+
+    // Password
+    if (!password) {
+      Alert.alert('Error', 'Please enter a password');
+      return false;
+    }
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
+      return false;
+    }
+
+    // Confirm Password
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return false;
+    }
+
+    return true;
+  };
+
+  // Firebase Sign Up using AuthContext
+  const handleSignUp = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    
+    const result = await signup(
+      email.trim(),
+      password,
+      fullName.trim(),
+      mobile.trim()
+    );
+
+    setLoading(false);
+
+    if (result.success) {
+      Alert.alert('Success', 'Account created successfully!');
+      // AppNavigator automatically redirects to Main
+    } else {
+      // Firebase error messages
+      const error = result.error;
+      let errorMessage = 'Sign up failed. Please try again.';
+
+      if (error?.code === 'auth/email-already-in-use') {
+        errorMessage = 'This email is already registered. Please log in.';
+      } else if (error?.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address.';
+      } else if (error?.code === 'auth/weak-password') {
+        errorMessage = 'Password is too weak. Use at least 6 characters.';
+      } else if (error?.code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your connection.';
+      }
+
+      Alert.alert('Sign Up Failed', errorMessage);
+    }
   };
 
   return (
@@ -46,6 +136,7 @@ const SignUpScreen = () => {
         style={styles.scrollView}
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.inputContainer}>
           <Text style={styles.inputLabel}>Full Name</Text>
@@ -57,6 +148,7 @@ const SignUpScreen = () => {
             onChangeText={setFullName}
             autoCapitalize="words"
             autoCorrect={false}
+            editable={!loading}
           />
         </View>
 
@@ -71,6 +163,7 @@ const SignUpScreen = () => {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            editable={!loading}
           />
         </View>
 
@@ -84,6 +177,7 @@ const SignUpScreen = () => {
             onChangeText={handleMobileChange}
             keyboardType="phone-pad"
             autoCapitalize="none"
+            editable={!loading}
           />
         </View>
 
@@ -99,14 +193,16 @@ const SignUpScreen = () => {
               secureTextEntry={!showPassword}
               autoCapitalize="none"
               autoCorrect={false}
+              editable={!loading}
             />
             <TouchableOpacity 
               onPress={() => setShowPassword(!showPassword)}
               style={styles.eyeIcon}
               activeOpacity={0.5}
+              disabled={loading}
             >
               <Icon 
-                name={showPassword ? "eye-slash" : "eye"}  // ✅ FontAwesome icon
+                name={showPassword ? "eye-slash" : "eye"}
                 size={20} 
                 color="#093030" 
               />
@@ -126,14 +222,16 @@ const SignUpScreen = () => {
               secureTextEntry={!showConfirmPassword}
               autoCapitalize="none"
               autoCorrect={false}
+              editable={!loading}
             />
             <TouchableOpacity 
               onPress={() => setShowConfirmPassword(!showConfirmPassword)}
               style={styles.eyeIcon}
               activeOpacity={0.5}
+              disabled={loading}
             >
               <Icon 
-                name={showConfirmPassword ? "eye-slash" : "eye"}  
+                name={showConfirmPassword ? "eye-slash" : "eye"}
                 size={20} 
                 color="#093030" 
               />
@@ -142,16 +240,22 @@ const SignUpScreen = () => {
         </View>
 
         <TouchableOpacity 
-          style={styles.signupButton}
+          style={[styles.signupButton, loading && styles.signupButtonDisabled]}
           activeOpacity={0.7}
           onPress={handleSignUp}
+          disabled={loading}
         >
-          <Text style={styles.signupButtonText}>Sign Up</Text>
+          {loading ? (
+            <ActivityIndicator color={colors.textSecondary} />
+          ) : (
+            <Text style={styles.signupButtonText}>Sign Up</Text>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity 
           activeOpacity={0.5}
           onPress={() => navigation.navigate('Login')}
+          disabled={loading}
         >
           <Text style={styles.loginPrompt}>
             Already have an account?  <Text style={styles.loginLink}>Log In</Text>
@@ -246,6 +350,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 24,
     marginBottom: 20,
+  },
+  signupButtonDisabled: {
+    opacity: 0.6,
   },
   signupButtonText: {
     fontSize: 20,

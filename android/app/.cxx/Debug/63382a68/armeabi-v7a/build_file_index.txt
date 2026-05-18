@@ -1,3 +1,4 @@
+/Users/sukrankurt/Desktop/project/SmartSpend/node_modules/@op-engineering/op-sqlite/android/build/generated/source/codegen/jni/CMakeLists.txt
 /Users/sukrankurt/Desktop/project/SmartSpend/node_modules/@react-native-camera-roll/camera-roll/android/build/generated/source/codegen/jni/CMakeLists.txt
 /Users/sukrankurt/Desktop/project/SmartSpend/node_modules/react-native-camera-kit/android/build/generated/source/codegen/jni/CMakeLists.txt
 /Users/sukrankurt/Desktop/project/SmartSpend/node_modules/react-native-image-picker/android/build/generated/source/codegen/jni/CMakeLists.txt

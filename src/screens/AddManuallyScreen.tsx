@@ -16,7 +16,8 @@ import TransportationIcon from '../assets/images/Transportation.svg';
 import HomeIcon from '../assets/images/Home.svg';
 import ShoppingIcon from '../assets/images/Shopping.svg';
 import { CommonActions } from '@react-navigation/native';
-import { addExpense, updateExpense } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
+import { addExpense, updateExpense } from '../services/database';
 
 type AddManuallyScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type AddManuallyScreenRouteProp = RouteProp<RootStackParamList, 'AddManuallyScreen'>;
@@ -28,6 +29,7 @@ const CATEGORIES: CategoryType[] = ['Food', 'Transportation', 'Shopping', 'Home'
 const AddManuallyScreen = () => {
   const navigation = useNavigation<AddManuallyScreenNavigationProp>();
   const route = useRoute<AddManuallyScreenRouteProp>();
+  const { firebaseUid } = useAuth(); // ✅ CHANGED: userId → firebaseUid
   
   const editMode = route.params?.editMode || false;
   const expenseData = route.params?.expense;
@@ -37,7 +39,6 @@ const AddManuallyScreen = () => {
   const [amount, setAmount] = useState('');
   const [isCategoryModalVisible, setIsCategoryModalVisible] = useState(false);
 
-  // Edit modundaysa verileri doldur
   useEffect(() => {
     if (editMode && expenseData) {
       setDate(expenseData.date.replace(/\//g, ' / '));
@@ -124,74 +125,83 @@ const AddManuallyScreen = () => {
     );
   };
 
-  const handleConfirm = () => {
-  if (!date || !category || !amount) {
-    Alert.alert('Error', 'Please fill in all fields');
-    return;
-  }
+  const handleConfirm = async () => {
+    if (!firebaseUid) { // ✅ CHANGED
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
 
-  const cleanDate = date.replace(/ \/ /g, '/');
-  const parsedAmount = parseFloat(amount);
+    if (!date || !category || !amount) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
 
-  if (isNaN(parsedAmount)) {
-    Alert.alert('Error', 'Invalid amount');
-    return;
-  }
+    const cleanDate = date.replace(/ \/ /g, '/');
+    const parsedAmount = parseFloat(amount);
 
-  // ✅ Şu anki tarih ve saati al
-  const now = new Date();
-  const [day, month, year] = cleanDate.split('/');
-  
-  // ✅ Kullanıcının girdiği tarihi, şu anki saatle birleştir
-  const timestamp = new Date(
-    parseInt(year),
-    parseInt(month) - 1,  // Ay 0-11 arası
-    parseInt(day),
-    now.getHours(),      // ✅ Şu anki saat
-    now.getMinutes(),    // ✅ Şu anki dakika
-    now.getSeconds()     // ✅ Şu anki saniye
-  ).getTime();
+    if (isNaN(parsedAmount)) {
+      Alert.alert('Error', 'Invalid amount');
+      return;
+    }
 
-  if (editMode && expenseData) {
-    updateExpense(expenseData.id, {
-      date: cleanDate,
-      category: category as any,
-      amount: parsedAmount,
-      createdAt: timestamp,
-    });
-    Alert.alert('Success', 'Expense updated successfully');
-  } else {
-    addExpense({
-      userId: 1,
-      date: cleanDate,
-      time: now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),  // ✅ Şu anki saat
-      category: category as any,
-      amount: parsedAmount,
-      type: 'manual',
-      createdAt: timestamp,
-    });
-    Alert.alert('Success', 'Expense added successfully');
-  }
+    const [day, month, year] = cleanDate.split('/');
+    
+    const parsedDay = parseInt(day, 10);
+    const parsedMonth = parseInt(month, 10) - 1;
+    const parsedYear = parseInt(year, 10);
+    
+    const timestamp = new Date(
+      parsedYear,
+      parsedMonth,
+      parsedDay,
+      0,
+      0,
+      0
+    ).getTime();
 
-  navigation.dispatch(
-    CommonActions.reset({
-      index: 0,
-      routes: [
-        {
-          name: 'Main',
-          state: {
-            routes: [{ name: 'Home' }],
-            index: 0,
-          },
-        },
-      ],
-    })
-  );
-};
+    try {
+      if (editMode && expenseData) {
+        await updateExpense(
+          expenseData.id,
+          parsedAmount,
+          category as any,
+          timestamp
+        );
+        Alert.alert('Success', 'Expense updated successfully');
+      } else {
+        await addExpense(
+          firebaseUid, // ✅ CHANGED: userId → firebaseUid
+          parsedAmount,
+          category as any,
+          timestamp,
+          undefined,
+          'manual'
+        );
+        Alert.alert('Success', 'Expense added successfully');
+      }
+
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [
+            {
+              name: 'Main',
+              state: {
+                routes: [{ name: 'Home' }],
+                index: 0,
+              },
+            },
+          ],
+        })
+      );
+    } catch (error) {
+      console.error('❌ Error saving expense:', error);
+      Alert.alert('Error', 'Failed to save expense');
+    }
+  };
 
   return (
     <View style={styles.wrapper}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.goBackButton}
@@ -214,7 +224,6 @@ const AddManuallyScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Main Content */}
       <View style={styles.container}>
         <ScrollView 
           contentContainerStyle={styles.scrollContent}
@@ -287,7 +296,6 @@ const AddManuallyScreen = () => {
         </ScrollView>
       </View>
 
-      {/* Category Modal */}
       <Modal
         isVisible={isCategoryModalVisible}
         onBackdropPress={() => setIsCategoryModalVisible(false)}
@@ -458,8 +466,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlignVertical: 'center',
   },
-
-  // Modal Styles
   modal: {
     justifyContent: 'flex-end',
     margin: 0,

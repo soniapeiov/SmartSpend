@@ -3,20 +3,21 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert,
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Modal from 'react-native-modal';
-import { RootStackParamList } from '../../navigation/Navtypes';  
-import { colors } from '../../theme/colors';  
-import { fonts } from '../../theme/fonts';  
-import GoBackIcon from '../../assets/images/Gobackicon.svg';  
-import NotificationIcon from '../../assets/images/Notificationicon.svg';  
-import DropdownIcon from '../../assets/images/Dropdownicon.svg';  
-import CalendarIcon from '../../assets/images/Calendaricon.svg';  
-import FoodIcon from '../../assets/images/Food.svg';  
-import OtherIcon from '../../assets/images/Other.svg';  
-import TransportationIcon from '../../assets/images/Transportation.svg';  
-import HomeIcon from '../../assets/images/Home.svg';  
-import ShoppingIcon from '../../assets/images/Shopping.svg';  
+import { RootStackParamList } from '../../navigation/Navtypes';
+import { colors } from '../../theme/colors';
+import { fonts } from '../../theme/fonts';
+import GoBackIcon from '../../assets/images/Gobackicon.svg';
+import NotificationIcon from '../../assets/images/Notificationicon.svg';
+import DropdownIcon from '../../assets/images/Dropdownicon.svg';
+import CalendarIcon from '../../assets/images/Calendaricon.svg';
+import FoodIcon from '../../assets/images/Food.svg';
+import OtherIcon from '../../assets/images/Other.svg';
+import TransportationIcon from '../../assets/images/Transportation.svg';
+import HomeIcon from '../../assets/images/Home.svg';
+import ShoppingIcon from '../../assets/images/Shopping.svg';
 import { CommonActions } from '@react-navigation/native';
-import { addExpense } from '../../data/mockData';  
+import { useAuth } from '../../context/AuthContext';
+import { addExpense } from '../../services/database';
 
 type ReviewExpenseScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type ReviewExpenseScreenRouteProp = RouteProp<RootStackParamList, 'ReviewExpense'>;
@@ -28,6 +29,7 @@ const CATEGORIES: CategoryType[] = ['Food', 'Transportation', 'Shopping', 'Home'
 const ReviewExpenseScreen = () => {
   const navigation = useNavigation<ReviewExpenseScreenNavigationProp>();
   const route = useRoute<ReviewExpenseScreenRouteProp>();
+  const { firebaseUid } = useAuth(); 
   
   const photoUri = route.params?.photoUri || '';
   const ocrData = route.params?.ocrData || {};
@@ -123,7 +125,12 @@ const ReviewExpenseScreen = () => {
     );
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    if (!firebaseUid) { // ✅ CHANGED
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+
     if (!date || !category || !amount) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
@@ -137,47 +144,53 @@ const ReviewExpenseScreen = () => {
       return;
     }
 
-    const now = new Date();
     const [day, month, year] = cleanDate.split('/');
     
+    const parsedDay = parseInt(day, 10);
+    const parsedMonth = parseInt(month, 10) - 1;
+    const parsedYear = parseInt(year, 10);
+    
     const timestamp = new Date(
-      parseInt(year),
-      parseInt(month) - 1,
-      parseInt(day),
-      now.getHours(),
-      now.getMinutes(),
-      now.getSeconds()
+      parsedYear,
+      parsedMonth,
+      parsedDay,
+      0,
+      0,
+      0
     ).getTime();
 
     const expenseType = route.params?.type || 'scan';
 
-    addExpense({
-      userId: 1,
-      date: cleanDate,
-      time: now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-      category: category as any,
-      amount: parsedAmount,
-      type: expenseType,
-      imageUrl: photoUri,
-      createdAt: timestamp,
-    });
+    try {
+      await addExpense(
+        firebaseUid, // ✅ CHANGED: userId → firebaseUid
+        parsedAmount,
+        category as any,
+        timestamp,
+        photoUri || undefined,
+        expenseType
+      );
 
-    Alert.alert('Success', 'Expense added successfully');
+      Alert.alert('Success', 'Expense added successfully');
 
-    navigation.dispatch(
-      CommonActions.reset({
-        index: 0,
-        routes: [
-          {
-            name: 'Main',
-            state: {
-              routes: [{ name: 'Home' }],
-              index: 0,
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [
+            {
+              name: 'Main',
+              state: {
+                routes: [{ name: 'Home' }],
+                index: 0,
+              },
             },
-          },
-        ],
-      })
-    );
+          ],
+        })
+      );
+    } catch (error) {
+      console.error('❌ Error saving expense:', error);
+      Alert.alert('Error', 'Failed to save expense');
+    }
   };
 
   return (

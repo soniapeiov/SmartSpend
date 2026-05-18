@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Modal, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/Navtypes';
 import { colors } from '../theme/colors';
 import { fonts } from '../theme/fonts';
+import { firebaseAuth } from '../services/firebase';
 
 type ForgotPasswordScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ForgotPassword'>;
 
@@ -12,12 +13,61 @@ const ForgotPasswordScreen = () => {
   const navigation = useNavigation<ForgotPasswordScreenNavigationProp>();
   const [email, setEmail] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleNextStep = () => {
-  console.log('Next step clicked, email:', email);
-  console.log('Setting modal to true');
-  setShowModal(true);
-};
+  // Email validation
+  const validateEmail = () => {
+    if (!email.trim()) {
+      Alert.alert('Error', 'Please enter your email address');
+      return false;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return false;
+    }
+    return true;
+  };
+
+  // Firebase Password Reset
+  const handleNextStep = async () => {
+    if (!validateEmail()) return;
+
+    setLoading(true);
+    try {
+      // Send password reset email via Firebase
+      await firebaseAuth.sendPasswordResetEmail(email.trim());
+
+      // Show success modal
+      setShowModal(true);
+
+    } catch (error: any) {
+      console.error('❌ Password reset error:', error);
+
+      // Firebase error messages
+      let errorMessage = 'Failed to send reset email. Please try again.';
+
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email address.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many requests. Please try again later.';
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your connection.';
+      }
+
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Close modal and navigate to Login
+  const handleModalClose = () => {
+    setShowModal(false);
+    navigation.navigate('Login');
+  };
 
   return (
     <KeyboardAvoidingView 
@@ -45,23 +95,29 @@ const ForgotPasswordScreen = () => {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
-            editable={true}
+            editable={!loading}
             selectTextOnFocus={true}
           />
         </View>
 
         <TouchableOpacity 
-          style={styles.nextButton}
+          style={[styles.nextButton, loading && styles.nextButtonDisabled]}
           activeOpacity={0.7}
           onPress={handleNextStep}
+          disabled={loading}
         >
-          <Text style={styles.nextButtonText}>Next Step</Text>
+          {loading ? (
+            <ActivityIndicator color={colors.textSecondary} />
+          ) : (
+            <Text style={styles.nextButtonText}>Next Step</Text>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity 
           style={styles.signupButton}
           activeOpacity={0.7}
           onPress={() => navigation.navigate('Login')}
+          disabled={loading}
         >
           <Text style={styles.signupButtonText}>Log In</Text>
         </TouchableOpacity>
@@ -69,6 +125,7 @@ const ForgotPasswordScreen = () => {
         <TouchableOpacity 
           activeOpacity={0.5}
           onPress={() => navigation.navigate('SignUp')}
+          disabled={loading}
         >
           <Text style={styles.signupPrompt}>
             Don't have an account? <Text style={styles.signupLink}>Sign Up</Text>
@@ -81,7 +138,7 @@ const ForgotPasswordScreen = () => {
         visible={showModal}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setShowModal(false)}
+        onRequestClose={handleModalClose}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -91,7 +148,7 @@ const ForgotPasswordScreen = () => {
             <TouchableOpacity 
               style={styles.modalButton}
               activeOpacity={0.7}
-              onPress={() => setShowModal(false)}
+              onPress={handleModalClose}
             >
               <Text style={styles.modalButtonText}>OK</Text>
             </TouchableOpacity>
@@ -178,6 +235,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
+  },
+  nextButtonDisabled: {
+    opacity: 0.6,
   },
   nextButtonText: {
     fontSize: 20,
