@@ -44,6 +44,7 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
+  include("/Users/sukrankurt/Desktop/project/SmartSpend/android/app/.cxx/Debug/63382a68/arm64-v8a/OPSQLiteSpec_autolinked_build/cmake_install.cmake")
   include("/Users/sukrankurt/Desktop/project/SmartSpend/android/app/.cxx/Debug/63382a68/arm64-v8a/rncameraroll_autolinked_build/cmake_install.cmake")
   include("/Users/sukrankurt/Desktop/project/SmartSpend/android/app/.cxx/Debug/63382a68/arm64-v8a/NativeCameraKitSpec_autolinked_build/cmake_install.cmake")
   include("/Users/sukrankurt/Desktop/project/SmartSpend/android/app/.cxx/Debug/63382a68/arm64-v8a/RNImagePickerSpec_autolinked_build/cmake_install.cmake")

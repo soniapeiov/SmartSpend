@@ -1,5 +1,6 @@
 {
   "buildFiles": [
+    "/Users/sukrankurt/Desktop/project/SmartSpend/node_modules/@op-engineering/op-sqlite/android/build/generated/source/codegen/jni/CMakeLists.txt",
     "/Users/sukrankurt/Desktop/project/SmartSpend/node_modules/@react-native-camera-roll/camera-roll/android/build/generated/source/codegen/jni/CMakeLists.txt",
     "/Users/sukrankurt/Desktop/project/SmartSpend/node_modules/react-native-camera-kit/android/build/generated/source/codegen/jni/CMakeLists.txt",
     "/Users/sukrankurt/Desktop/project/SmartSpend/node_modules/react-native-image-picker/android/build/generated/source/codegen/jni/CMakeLists.txt",
@@ -33,15 +34,20 @@
         "/Users/sukrankurt/Desktop/project/SmartSpend/android/app/build/intermediates/cxx/Debug/63382a68/obj/x86_64/libreact_codegen_safeareacontext.so",
         "/Users/sukrankurt/Desktop/project/SmartSpend/android/app/build/intermediates/cxx/Debug/63382a68/obj/x86_64/libreact_codegen_rnscreens.so",
         "/Users/sukrankurt/Desktop/project/SmartSpend/android/app/build/intermediates/cxx/Debug/63382a68/obj/x86_64/libreact_codegen_rnsvg.so",
-        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/3c01aea05d2737e987399f1309ae090e/transformed/fbjni-0.7.0/prefab/modules/fbjni/libs/android.x86_64/libfbjni.so",
-        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/edeb5bd2d85492850af39f8fd5e68fb0/transformed/react-android-0.85.2-debug/prefab/modules/jsi/libs/android.x86_64/libjsi.so",
-        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/edeb5bd2d85492850af39f8fd5e68fb0/transformed/react-android-0.85.2-debug/prefab/modules/reactnative/libs/android.x86_64/libreactnative.so"
+        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/74c14f8430195739d2e6c46957fa86e0/transformed/fbjni-0.7.0/prefab/modules/fbjni/libs/android.x86_64/libfbjni.so",
+        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/5610d76b85abf362a180fe967080549a/transformed/react-android-0.85.2-debug/prefab/modules/jsi/libs/android.x86_64/libjsi.so",
+        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/5610d76b85abf362a180fe967080549a/transformed/react-android-0.85.2-debug/prefab/modules/reactnative/libs/android.x86_64/libreactnative.so"
       ]
     },
     "react_codegen_NativeCameraKitSpec::@56ccb1a98efdd6d45482": {
       "toolchain": "toolchain",
       "abi": "x86_64",
       "artifactName": "react_codegen_NativeCameraKitSpec"
+    },
+    "react_codegen_OPSQLiteSpec::@1d2ceb4ab0c4d2e06808": {
+      "toolchain": "toolchain",
+      "abi": "x86_64",
+      "artifactName": "react_codegen_OPSQLiteSpec"
     },
     "react_codegen_RNImagePickerSpec::@f66ee9a2efecfb28bee4": {
       "toolchain": "toolchain",
@@ -64,9 +70,9 @@
       "artifactName": "react_codegen_rnscreens",
       "output": "/Users/sukrankurt/Desktop/project/SmartSpend/android/app/build/intermediates/cxx/Debug/63382a68/obj/x86_64/libreact_codegen_rnscreens.so",
       "runtimeFiles": [
-        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/edeb5bd2d85492850af39f8fd5e68fb0/transformed/react-android-0.85.2-debug/prefab/modules/reactnative/libs/android.x86_64/libreactnative.so",
-        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/edeb5bd2d85492850af39f8fd5e68fb0/transformed/react-android-0.85.2-debug/prefab/modules/jsi/libs/android.x86_64/libjsi.so",
-        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/3c01aea05d2737e987399f1309ae090e/transformed/fbjni-0.7.0/prefab/modules/fbjni/libs/android.x86_64/libfbjni.so"
+        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/5610d76b85abf362a180fe967080549a/transformed/react-android-0.85.2-debug/prefab/modules/reactnative/libs/android.x86_64/libreactnative.so",
+        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/5610d76b85abf362a180fe967080549a/transformed/react-android-0.85.2-debug/prefab/modules/jsi/libs/android.x86_64/libjsi.so",
+        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/74c14f8430195739d2e6c46957fa86e0/transformed/fbjni-0.7.0/prefab/modules/fbjni/libs/android.x86_64/libfbjni.so"
       ]
     },
     "react_codegen_rnsvg::@4f40eb209d0c0b4a3b65": {
@@ -75,9 +81,9 @@
       "artifactName": "react_codegen_rnsvg",
       "output": "/Users/sukrankurt/Desktop/project/SmartSpend/android/app/build/intermediates/cxx/Debug/63382a68/obj/x86_64/libreact_codegen_rnsvg.so",
       "runtimeFiles": [
-        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/edeb5bd2d85492850af39f8fd5e68fb0/transformed/react-android-0.85.2-debug/prefab/modules/reactnative/libs/android.x86_64/libreactnative.so",
-        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/edeb5bd2d85492850af39f8fd5e68fb0/transformed/react-android-0.85.2-debug/prefab/modules/jsi/libs/android.x86_64/libjsi.so",
-        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/3c01aea05d2737e987399f1309ae090e/transformed/fbjni-0.7.0/prefab/modules/fbjni/libs/android.x86_64/libfbjni.so"
+        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/5610d76b85abf362a180fe967080549a/transformed/react-android-0.85.2-debug/prefab/modules/reactnative/libs/android.x86_64/libreactnative.so",
+        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/5610d76b85abf362a180fe967080549a/transformed/react-android-0.85.2-debug/prefab/modules/jsi/libs/android.x86_64/libjsi.so",
+        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/74c14f8430195739d2e6c46957fa86e0/transformed/fbjni-0.7.0/prefab/modules/fbjni/libs/android.x86_64/libfbjni.so"
       ]
     },
     "react_codegen_safeareacontext::@7984cd80db47aa7b952a": {
@@ -86,9 +92,9 @@
       "artifactName": "react_codegen_safeareacontext",
       "output": "/Users/sukrankurt/Desktop/project/SmartSpend/android/app/build/intermediates/cxx/Debug/63382a68/obj/x86_64/libreact_codegen_safeareacontext.so",
       "runtimeFiles": [
-        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/3c01aea05d2737e987399f1309ae090e/transformed/fbjni-0.7.0/prefab/modules/fbjni/libs/android.x86_64/libfbjni.so",
-        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/edeb5bd2d85492850af39f8fd5e68fb0/transformed/react-android-0.85.2-debug/prefab/modules/jsi/libs/android.x86_64/libjsi.so",
-        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/edeb5bd2d85492850af39f8fd5e68fb0/transformed/react-android-0.85.2-debug/prefab/modules/reactnative/libs/android.x86_64/libreactnative.so"
+        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/74c14f8430195739d2e6c46957fa86e0/transformed/fbjni-0.7.0/prefab/modules/fbjni/libs/android.x86_64/libfbjni.so",
+        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/5610d76b85abf362a180fe967080549a/transformed/react-android-0.85.2-debug/prefab/modules/jsi/libs/android.x86_64/libjsi.so",
+        "/Users/sukrankurt/.gradle/caches/9.3.1/transforms/5610d76b85abf362a180fe967080549a/transformed/react-android-0.85.2-debug/prefab/modules/reactnative/libs/android.x86_64/libreactnative.so"
       ]
     }
   },

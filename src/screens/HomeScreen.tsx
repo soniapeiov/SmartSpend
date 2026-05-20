@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -13,23 +13,45 @@ import OtherIcon from '../assets/images/Other.svg';
 import TransportationIcon from '../assets/images/Transportation.svg';
 import HomeIcon from '../assets/images/Home.svg';
 import ShoppingIcon from '../assets/images/Shopping.svg';
-import { 
-  getTotalExpenses, 
-  getExpensesByPeriod, 
+import { useAuth } from '../context/AuthContext';
+import { useFocusEffect } from '@react-navigation/native';
+import {
+  getTotalExpenses,
+  getExpensesByPeriod,
   deleteExpense,
-  Expense 
-} from '../data/mockData';
+  Expense
+} from '../services/database';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type PeriodType = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
+  const { firebaseUid } = useAuth(); // ✅ CHANGED: userId → firebaseUid
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('monthly');
-  const [refreshKey, setRefreshKey] = useState(0);  // ✅ Yeniden render için
 
-  const totalExpenses = getTotalExpenses(selectedPeriod);
-  const expenses = getExpensesByPeriod(selectedPeriod);
+  const [totalExpenses, setTotalExpenses] = useState(0);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [firebaseUid, selectedPeriod]) 
+  );
+
+  const loadData = async () => {
+    if (!firebaseUid) return; 
+
+    try {
+      const total = await getTotalExpenses(firebaseUid, selectedPeriod); 
+      const expenseList = await getExpensesByPeriod(firebaseUid, selectedPeriod); 
+
+      setTotalExpenses(total);
+      setExpenses(expenseList);
+    } catch (error) {
+      console.error('❌ Error loading data:', error);
+    }
+  };
 
   const formattedAmount = totalExpenses.toLocaleString('de-DE', {
     minimumFractionDigits: 2,
@@ -40,7 +62,6 @@ const HomeScreen = () => {
     navigation.navigate('NotificationScreen');
   };
 
-  // Delete expense
   const handleDelete = (item: Expense) => {
     Alert.alert(
       'Delete Expense',
@@ -50,33 +71,43 @@ const HomeScreen = () => {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
-            deleteExpense(item.id);  // ✅ Mock data'dan sil
-            setRefreshKey(prev => prev + 1);  // ✅ Yeniden render
+          onPress: async () => {
+            if (!firebaseUid) return; 
+            try {
+              await deleteExpense(item.id);
+              loadData();
+            } catch (error) {
+              console.error('❌ Delete error:', error);
+              Alert.alert('Error', 'Failed to delete expense');
+            }
           },
         },
       ]
     );
   };
 
-  // Edit expense
-const handleEdit = (item: Expense) => {
-  // @ts-ignore - Tab navigator'a navigate
-  navigation.navigate('Main', {
-    screen: 'AddManually',
-    params: {
-      editMode: true,
-      expense: {
-        id: item.id,
-        date: item.date,
-        category: item.category,
-        amount: item.amount,
-      },
-    },
-  });
-};
+  const handleEdit = (item: Expense) => {
+    const dateObj = new Date(item.date);
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const year = dateObj.getFullYear();
+    const formattedDate = `${day}/${month}/${year}`;
 
-  // Kategori ikonunu getir
+    // @ts-ignore
+    navigation.navigate('Main', {
+      screen: 'AddManually',
+      params: {
+        editMode: true,
+        expense: {
+          id: item.id,
+          date: formattedDate,
+          category: item.category,
+          amount: item.amount,
+        },
+      },
+    });
+  };
+
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'Food':
@@ -94,7 +125,6 @@ const handleEdit = (item: Expense) => {
     }
   };
 
-  // Tarih formatla
   const formatDateTime = (timestamp: number) => {
     const date = new Date(timestamp);
     const time = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -103,7 +133,17 @@ const handleEdit = (item: Expense) => {
     return `${time} - ${month} ${day}`;
   };
 
-  // Harcama item render
+  const formatExpenseDate = (dateTimestamp: number, createdAtTimestamp: number) => {
+    const expenseDate = new Date(dateTimestamp);
+    const createdDate = new Date(createdAtTimestamp);
+
+    const month = expenseDate.toLocaleString('en-US', { month: 'long' });
+    const day = expenseDate.getDate();
+    const time = createdDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+    return `${time} - ${month} ${day}`;
+  };
+
   const renderExpenseItem = ({ item }: { item: Expense }) => (
     <View style={styles.expenseItemFront}>
       <View style={styles.categoryIconContainer}>
@@ -111,13 +151,14 @@ const handleEdit = (item: Expense) => {
       </View>
       <View style={styles.categoryInfo}>
         <Text style={styles.categoryName}>{item.category}</Text>
-        <Text style={styles.categoryDateTime}>{formatDateTime(item.createdAt)}</Text>
+        <Text style={styles.categoryDateTime}>
+          {formatExpenseDate(item.date, item.createdAt)}
+        </Text>
       </View>
       <Text style={styles.expenseAmount}>{item.amount.toFixed(2)}€</Text>
     </View>
   );
 
-  // Hidden buttons
   const renderHiddenItem = ({ item }: { item: Expense }) => (
     <View style={styles.hiddenItemContainer}>
       <TouchableOpacity
@@ -139,10 +180,9 @@ const handleEdit = (item: Expense) => {
 
   return (
     <View style={styles.wrapper}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Hi, Welcome</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.notificationButton}
           onPress={handleNotification}
           activeOpacity={0.7}
@@ -151,9 +191,7 @@ const handleEdit = (item: Expense) => {
         </TouchableOpacity>
       </View>
 
-      {/* Main Content */}
       <View style={styles.container}>
-        {/* Total Expenses Card */}
         <View style={styles.totalExpensesCard}>
           <Text style={styles.totalExpensesLabel}>Total Expenses</Text>
           <View style={styles.amountRow}>
@@ -166,7 +204,6 @@ const handleEdit = (item: Expense) => {
           </View>
         </View>
 
-        {/* Period Selector */}
         <View style={styles.periodSelector}>
           <TouchableOpacity
             style={[styles.periodButton, selectedPeriod === 'daily' && styles.periodButtonActive]}
@@ -191,9 +228,7 @@ const handleEdit = (item: Expense) => {
           </TouchableOpacity>
         </View>
 
-        {/* Expenses List */}
         <SwipeListView
-          key={refreshKey}  // ✅ Yeniden render için
           data={expenses}
           renderItem={renderExpenseItem}
           renderHiddenItem={renderHiddenItem}
@@ -245,8 +280,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 21,
     paddingTop: 35,
   },
-  
-  // Total Expenses Card
   totalExpensesCard: {
     width: 357,
     height: 144,
@@ -290,8 +323,6 @@ const styles = StyleSheet.create({
     color: colors.primaryDark,
     textAlign: 'center',
   },
-  
-  // Period Selector
   periodSelector: {
     width: 358,
     height: 60,
@@ -323,20 +354,16 @@ const styles = StyleSheet.create({
     color: colors.primaryDark,
     textAlign: 'center',
   },
-
-  // Expenses List
   expensesList: {
     paddingTop: 30,
     paddingBottom: 120,
-    paddingHorizontal: 0,  // ✅ 14 → 0
+    paddingHorizontal: 0,
   },
-  
-  // Expense Item (Front)
   expenseItemFront: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 27,
-    marginHorizontal: 14,  // ✅ Liste içindeki itemlara margin
+    marginHorizontal: 14,
     paddingHorizontal: 0,
     backgroundColor: colors.background,
     justifyContent: 'space-between',
@@ -367,18 +394,18 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     fontWeight: '500',
     color: colors.primaryDark,
-    marginRight: 25,  
+    marginRight: 35,
+    minWidth: 70,
+    textAlign: 'right',
   },
-
-  // Hidden Buttons (Back)
   hiddenItemContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
     height: 53,
     marginBottom: 27,
-    marginHorizontal: 14,  
-    paddingRight: 0,  
+    marginHorizontal: 14,
+    paddingRight: 0,
   },
   hiddenButton: {
     width: 80,

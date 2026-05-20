@@ -12,6 +12,30 @@ if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
   file(TOUCH_NOCREATE "/Users/sukrankurt/Desktop/project/SmartSpend/android/app/.cxx/Debug/63382a68/armeabi-v7a/CMakeFiles/cmake.verify_globs")
 endif()
 
+# react_codegen_SRCS at /Users/sukrankurt/Desktop/project/SmartSpend/node_modules/@op-engineering/op-sqlite/android/build/generated/source/codegen/jni/CMakeLists.txt:9 (file)
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "/Users/sukrankurt/Desktop/project/SmartSpend/node_modules/@op-engineering/op-sqlite/android/build/generated/source/codegen/jni/*.cpp")
+set(OLD_GLOB
+  "/Users/sukrankurt/Desktop/project/SmartSpend/node_modules/@op-engineering/op-sqlite/android/build/generated/source/codegen/jni/OPSQLiteSpec-generated.cpp"
+  )
+if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
+  message("-- GLOB mismatch!")
+  file(TOUCH_NOCREATE "/Users/sukrankurt/Desktop/project/SmartSpend/android/app/.cxx/Debug/63382a68/armeabi-v7a/CMakeFiles/cmake.verify_globs")
+endif()
+
+# react_codegen_SRCS at /Users/sukrankurt/Desktop/project/SmartSpend/node_modules/@op-engineering/op-sqlite/android/build/generated/source/codegen/jni/CMakeLists.txt:9 (file)
+file(GLOB NEW_GLOB LIST_DIRECTORIES true "/Users/sukrankurt/Desktop/project/SmartSpend/node_modules/@op-engineering/op-sqlite/android/build/generated/source/codegen/jni/react/renderer/components/OPSQLiteSpec/*.cpp")
+set(OLD_GLOB
+  "/Users/sukrankurt/Desktop/project/SmartSpend/node_modules/@op-engineering/op-sqlite/android/build/generated/source/codegen/jni/react/renderer/components/OPSQLiteSpec/ComponentDescriptors.cpp"
+  "/Users/sukrankurt/Desktop/project/SmartSpend/node_modules/@op-engineering/op-sqlite/android/build/generated/source/codegen/jni/react/renderer/components/OPSQLiteSpec/EventEmitters.cpp"
+  "/Users/sukrankurt/Desktop/project/SmartSpend/node_modules/@op-engineering/op-sqlite/android/build/generated/source/codegen/jni/react/renderer/components/OPSQLiteSpec/Props.cpp"
+  "/Users/sukrankurt/Desktop/project/SmartSpend/node_modules/@op-engineering/op-sqlite/android/build/generated/source/codegen/jni/react/renderer/components/OPSQLiteSpec/ShadowNodes.cpp"
+  "/Users/sukrankurt/Desktop/project/SmartSpend/node_modules/@op-engineering/op-sqlite/android/build/generated/source/codegen/jni/react/renderer/components/OPSQLiteSpec/States.cpp"
+  )
+if(NOT "${NEW_GLOB}" STREQUAL "${OLD_GLOB}")
+  message("-- GLOB mismatch!")
+  file(TOUCH_NOCREATE "/Users/sukrankurt/Desktop/project/SmartSpend/android/app/.cxx/Debug/63382a68/armeabi-v7a/CMakeFiles/cmake.verify_globs")
+endif()
+
 # react_codegen_SRCS at /Users/sukrankurt/Desktop/project/SmartSpend/node_modules/@react-native-camera-roll/camera-roll/android/build/generated/source/codegen/jni/CMakeLists.txt:9 (file)
 file(GLOB NEW_GLOB LIST_DIRECTORIES true "/Users/sukrankurt/Desktop/project/SmartSpend/node_modules/@react-native-camera-roll/camera-roll/android/build/generated/source/codegen/jni/*.cpp")
 set(OLD_GLOB

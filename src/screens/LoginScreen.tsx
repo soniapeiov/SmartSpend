@@ -1,23 +1,80 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/Navtypes';
 import { colors } from '../theme/colors';
 import { fonts } from '../theme/fonts';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { useAuth } from '../context/AuthContext';
+import { firebaseAuth } from '../services/firebase';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
 const LoginScreen = () => {
   const navigation = useNavigation<LoginScreenNavigationProp>();
+  const { login } = useAuth();
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    console.log('Login:', email, password);
-    navigation.navigate('Main'); 
+  // Form validation
+  const validateForm = () => {
+    if (!email.trim()) {
+      Alert.alert('Error', 'Please enter your email');
+      return false;
+    }
+    if (!password.trim()) {
+      Alert.alert('Error', 'Please enter your password');
+      return false;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return false;
+    }
+    return true;
+  };
+
+  // Firebase Login
+  const handleLogin = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    
+    try {
+      const userCredential = await firebaseAuth.signInWithEmailAndPassword(
+        email.trim(), 
+        password
+      );
+      const firebaseUid = userCredential.user.uid;
+
+      // Trigger auth listener to load user profile
+      await login(firebaseUid);
+      
+    } catch (error: any) {
+      console.error('❌ Login error:', error);
+      
+      let errorMessage = 'Login failed. Please try again.';
+      
+      if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address.';
+      } else if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email.';
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password.';
+      } else if (error.code === 'auth/invalid-credential') {
+        errorMessage = 'Invalid email or password.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed attempts. Please try again later.';
+      }
+
+      Alert.alert('Login Failed', errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -41,6 +98,7 @@ const LoginScreen = () => {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            editable={!loading}
           />
         </View>
 
@@ -56,11 +114,13 @@ const LoginScreen = () => {
               secureTextEntry={!showPassword}
               autoCapitalize="none"
               autoCorrect={false}
+              editable={!loading}
             />
             <TouchableOpacity 
               onPress={() => setShowPassword(!showPassword)}
               style={styles.eyeIcon}
               activeOpacity={0.5}
+              disabled={loading}
             >
               <Icon 
                 name={showPassword ? "eye-slash" : "eye"} 
@@ -72,16 +132,22 @@ const LoginScreen = () => {
         </View>
 
         <TouchableOpacity 
-          style={styles.loginButton}
+          style={[styles.loginButton, loading && styles.loginButtonDisabled]}
           activeOpacity={0.7}
           onPress={handleLogin}
+          disabled={loading}
         >
-          <Text style={styles.loginButtonText}>Log In</Text>
+          {loading ? (
+            <ActivityIndicator color={colors.textSecondary} />
+          ) : (
+            <Text style={styles.loginButtonText}>Log In</Text>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity 
           activeOpacity={0.5}
           onPress={() => navigation.navigate('ForgotPassword')}
+          disabled={loading}
         >
           <Text style={styles.forgotPassword}>Forgot Password?</Text>
         </TouchableOpacity>
@@ -90,6 +156,7 @@ const LoginScreen = () => {
           style={styles.signupButton}
           activeOpacity={0.7}
           onPress={() => navigation.navigate('SignUp')}
+          disabled={loading}
         >
           <Text style={styles.signupButtonText}>Sign Up</Text>
         </TouchableOpacity>
@@ -97,6 +164,7 @@ const LoginScreen = () => {
         <TouchableOpacity 
           activeOpacity={0.5}
           onPress={() => navigation.navigate('SignUp')}
+          disabled={loading}
         >
           <Text style={styles.signupPrompt}>
             Don't have an account? <Text style={styles.signupLink}>Sign Up</Text>
@@ -188,6 +256,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 34,
     marginBottom: 14,
+  },
+  loginButtonDisabled: {
+    opacity: 0.6,
   },
   loginButtonText: {
     fontSize: 20,

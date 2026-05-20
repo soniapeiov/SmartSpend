@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';  
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -15,30 +15,51 @@ import TransportationIcon from '../assets/images/Transportation.svg';
 import HomeIcon from '../assets/images/Home.svg';
 import ShoppingIcon from '../assets/images/Shopping.svg';
 import { CommonActions } from '@react-navigation/native';
-import { 
-  getExpensesByCategory, 
-  getExpensesByPeriod, 
+import { useAuth } from '../context/AuthContext';
+import { useFocusEffect } from '@react-navigation/native';
+import {
+  getExpensesByPeriod,
+  getExpensesByCategory,
   deleteExpense,
-  Expense 
-} from '../data/mockData';
+  Expense
+} from '../services/database';
 
 type AnalysisScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type PeriodType = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
+interface CategoryData {
+  category: string;
+  amount: number;
+  percentage: number;
+}
+
 const AnalysisScreen = () => {
   const navigation = useNavigation<AnalysisScreenNavigationProp>();
+  const { firebaseUid } = useAuth(); // ✅ CHANGED: userId → firebaseUid
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('daily');
-  const [refreshKey, setRefreshKey] = useState(0);  
 
-  const categoryData = useMemo(
-    () => getExpensesByCategory(selectedPeriod),
-    [selectedPeriod, refreshKey]  
+  const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [firebaseUid, selectedPeriod]) // ✅ CHANGED
   );
 
-  const expenses = useMemo(
-    () => getExpensesByPeriod(selectedPeriod),
-    [selectedPeriod, refreshKey]  
-  );
+  const loadData = async () => {
+    if (!firebaseUid) return; // ✅ CHANGED
+
+    try {
+      const categoryList = await getExpensesByCategory(firebaseUid, selectedPeriod); // ✅ CHANGED
+      const expenseList = await getExpensesByPeriod(firebaseUid, selectedPeriod); // ✅ CHANGED
+
+      setCategoryData(categoryList);
+      setExpenses(expenseList);
+    } catch (error) {
+      console.error('❌ Error loading data:', error);
+    }
+  };
 
   const chartColors: { [key: string]: string } = {
     Food: '#5B9FFF',
@@ -49,7 +70,7 @@ const AnalysisScreen = () => {
   };
 
   const pieData = categoryData.map((item) => ({
-    name: '',  
+    name: '',
     population: item.percentage,
     color: chartColors[item.category] || '#9CA3AF',
     legendFontColor: colors.primaryDark,
@@ -77,7 +98,6 @@ const AnalysisScreen = () => {
     );
   };
 
-  // Delete expense
   const handleDelete = (item: Expense) => {
     Alert.alert(
       'Delete Expense',
@@ -87,25 +107,36 @@ const AnalysisScreen = () => {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
-            deleteExpense(item.id);
-            setRefreshKey(prev => prev + 1);  // render
+          onPress: async () => {
+            if (!firebaseUid) return; // ✅ CHANGED
+            try {
+              await deleteExpense(item.id);
+              loadData();
+            } catch (error) {
+              console.error('❌ Delete error:', error);
+              Alert.alert('Error', 'Failed to delete expense');
+            }
           },
         },
       ]
     );
   };
 
-  //  Edit expense
   const handleEdit = (item: Expense) => {
-    // @ts-ignore - Tab navigator'a navigate
+    const dateObj = new Date(item.date);
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const year = dateObj.getFullYear();
+    const formattedDate = `${day}/${month}/${year}`;
+
+    // @ts-ignore
     navigation.navigate('Main', {
       screen: 'AddManually',
       params: {
         editMode: true,
         expense: {
           id: item.id,
-          date: item.date,
+          date: formattedDate,
           category: item.category,
           amount: item.amount,
         },
@@ -113,7 +144,6 @@ const AnalysisScreen = () => {
     });
   };
 
-  // Kategori ikonunu getir
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'Food':
@@ -131,16 +161,17 @@ const AnalysisScreen = () => {
     }
   };
 
-  // Tarih formatla
-  const formatDateTime = (timestamp: number) => {
-    const date = new Date(timestamp);
-    const time = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    const month = date.toLocaleString('en-US', { month: 'long' });
-    const day = date.getDate();
+  const formatExpenseDate = (dateTimestamp: number, createdAtTimestamp: number) => {
+    const expenseDate = new Date(dateTimestamp);
+    const createdDate = new Date(createdAtTimestamp);
+
+    const month = expenseDate.toLocaleString('en-US', { month: 'long' });
+    const day = expenseDate.getDate();
+    const time = createdDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
     return `${time} - ${month} ${day}`;
   };
 
-  // Expense Item Render (Front - görünen kısım)
   const renderExpenseItem = ({ item }: { item: Expense }) => (
     <View style={styles.expenseItemFront}>
       <View style={styles.categoryIconContainer}>
@@ -148,13 +179,14 @@ const AnalysisScreen = () => {
       </View>
       <View style={styles.categoryInfo}>
         <Text style={styles.categoryName}>{item.category}</Text>
-        <Text style={styles.categoryDateTime}>{formatDateTime(item.createdAt)}</Text>
+        <Text style={styles.categoryDateTime}>
+          {formatExpenseDate(item.date, item.createdAt)}
+        </Text>
       </View>
       <Text style={styles.expenseAmount}>{item.amount.toFixed(2)}€</Text>
     </View>
   );
 
-  // Hidden buttons (Back - kaydırınca görünen)
   const renderHiddenItem = ({ item }: { item: Expense }) => (
     <View style={styles.hiddenItemContainer}>
       <TouchableOpacity
@@ -176,9 +208,8 @@ const AnalysisScreen = () => {
 
   return (
     <View style={styles.wrapper}>
-      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.goBackButton}
           onPress={handleGoBack}
           activeOpacity={0.7}
@@ -188,7 +219,7 @@ const AnalysisScreen = () => {
 
         <Text style={styles.headerTitle}>Analysis</Text>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.notificationButton}
           onPress={handleNotification}
           activeOpacity={0.7}
@@ -197,10 +228,8 @@ const AnalysisScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Main Content */}
       <View style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Period Selector */}
           <View style={styles.periodSelector}>
             <TouchableOpacity
               style={[styles.periodButton, selectedPeriod === 'daily' && styles.periodButtonActive]}
@@ -232,42 +261,39 @@ const AnalysisScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Chart + Legend Yan Yana */}
           {pieData.length > 0 ? (
             <View style={styles.chartWithLegendContainer}>
-              {/* Pie Chart - Sol taraf */}
               <View style={styles.chartContainer}>
                 <PieChart
                   data={pieData}
-                  width={210}  
-                  height={210}  
+                  width={210}
+                  height={210}
                   chartConfig={{
                     color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
                   }}
                   accessor="population"
                   backgroundColor="transparent"
-                  paddingLeft="15"  
-                  center={[18, 0]} 
+                  paddingLeft="15"
+                  center={[18, 0]}
                   absolute={false}
                   hasLegend={false}
                 />
               </View>
 
-              {/* Legend + Yüzdeler - Sağ taraf */}
               <View style={styles.legendContainer}>
                 {categoryData.map((item, index) => (
                   <View key={index} style={styles.legendItem}>
-                    <View 
+                    <View
                       style={[
-                        styles.legendColorBox, 
+                        styles.legendColorBox,
                         { backgroundColor: chartColors[item.category] }
-                      ]} 
+                      ]}
                     />
                     <Text style={styles.legendText}>{item.category}</Text>
-                    <Text 
+                    <Text
                       style={[
                         styles.legendPercentage,
-                        { color: chartColors[item.category] }  
+                        { color: chartColors[item.category] }
                       ]}
                     >
                       %{item.percentage}
@@ -280,9 +306,7 @@ const AnalysisScreen = () => {
             <Text style={styles.noDataText}>No data available for this period</Text>
           )}
 
-          {/* Expenses List with Swipe */}
           <SwipeListView
-            key={refreshKey}  // Yeniden render için
             data={expenses}
             renderItem={renderExpenseItem}
             renderHiddenItem={renderHiddenItem}
@@ -292,7 +316,7 @@ const AnalysisScreen = () => {
             rightOpenValue={-160}
             disableRightSwipe
             closeOnRowPress
-            scrollEnabled={false}  // ScrollView içinde olduğu için
+            scrollEnabled={false}
           />
         </ScrollView>
       </View>
@@ -340,8 +364,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 21,
     paddingTop: 30,
   },
-
-  // Period Selector
   periodSelector: {
     width: 358,
     height: 60,
@@ -373,61 +395,51 @@ const styles = StyleSheet.create({
     color: colors.primaryDark,
     textAlign: 'center',
   },
-
-  // Chart + Legend Container
   chartWithLegendContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 0,  
+    paddingHorizontal: 0,
     marginTop: 0,
     marginBottom: 30,
   },
-
-  // Chart Container
   chartContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 9,  
+    marginLeft: 9,
   },
-
-  // Legend Container
   legendContainer: {
     flex: 2,
-    paddingLeft: 0,  
-    paddingRight: 5,  
+    paddingLeft: 0,
+    paddingRight: 5,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 14,  
+    marginBottom: 14,
   },
   legendColorBox: {
     width: 16,
     height: 16,
     borderRadius: 4,
-    marginRight: 10,  
+    marginRight: 10,
   },
   legendText: {
     flex: 1,
-    fontSize: 12,  
+    fontSize: 12,
     fontFamily: fonts.regular,
     color: colors.primaryDark,
   },
   legendPercentage: {
     fontSize: 15,
     fontFamily: fonts.bold,
-    minWidth: 45,  
+    minWidth: 45,
     textAlign: 'right',
   },
-
-  // Expenses List
   expensesList: {
-    paddingBottom: 40,
+    paddingBottom: 120,
     paddingHorizontal: 0,
   },
-
-  // Expense Item (Front - görünen)
   expenseItemFront: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -463,10 +475,10 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     fontWeight: '500',
     color: colors.primaryDark,
-    marginRight: 25,
+    marginRight: 35,
+    minWidth: 70,
+    textAlign: 'right',
   },
-
-  // Hidden Buttons (Back - kaydırınca görünen)
   hiddenItemContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -496,7 +508,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
-
   noDataText: {
     textAlign: 'center',
     fontSize: 16,
