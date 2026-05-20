@@ -1,1 +1,0 @@
-/Users/sukrankurt/Desktop/project/SmartSpend/android/app/build/intermediates/cxx/Debug/63382a68/obj/arm64-v8a
