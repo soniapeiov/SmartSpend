@@ -1,3 +1,4 @@
+import { useAppInsets } from '../hooks/useAppInsets';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -12,6 +13,7 @@ import { firebaseAuth } from '../services/firebase';
 type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
 const LoginScreen = () => {
+  const { headerTop } = useAppInsets();
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const { login } = useAuth();
   
@@ -82,7 +84,7 @@ const LoginScreen = () => {
       style={styles.wrapper} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: headerTop }]}>
         <Text style={styles.headerTitle}>Welcome</Text>
       </View>
 

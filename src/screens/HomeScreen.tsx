@@ -1,3 +1,4 @@
+import { useAppInsets } from '../hooks/useAppInsets';
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -27,7 +28,8 @@ type PeriodType = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
-  const { firebaseUid } = useAuth(); // ✅ CHANGED: userId → firebaseUid
+  const { firebaseUid } = useAuth();
+  const { headerTop } = useAppInsets(); // ✅ CHANGED: userId → firebaseUid
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('monthly');
 
   const [totalExpenses, setTotalExpenses] = useState(0);
@@ -180,7 +182,7 @@ const HomeScreen = () => {
 
   return (
     <View style={styles.wrapper}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: headerTop }]}>
         <Text style={styles.headerTitle}>Hi, Welcome</Text>
         <TouchableOpacity
           style={styles.notificationButton}
@@ -254,7 +256,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 36,
-    paddingTop: 69,
     marginBottom: 17,
   },
   headerTitle: {

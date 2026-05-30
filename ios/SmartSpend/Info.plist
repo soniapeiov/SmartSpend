@@ -33,8 +33,14 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>SmartSpend needs access to your camera to scan receipts and invoices for automatic expense tracking.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>SmartSpend needs permission to save the scanned receipt photos to your photo library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>SmartSpend needs access to your photo library to scan existing receipt photos from your gallery.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIAppFonts</key>
@@ -43,6 +49,7 @@
 		<string>Poppins-Regular.ttf</string>
 		<string>Poppins-Bold.ttf</string>
 		<string>Poppins-SemiBold.ttf</string>
+		<string>FontAwesome.ttf</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

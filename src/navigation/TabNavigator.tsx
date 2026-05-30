@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabParamList } from './Navtypes';
 import { colors } from '../theme/colors';
 
@@ -19,11 +20,28 @@ import ProfileIcon from '../assets/images/Profileicon.svg';
 const Tab = createBottomTabNavigator<TabParamList>();
 
 export const TabNavigator = () => {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: {
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 72 + insets.bottom,  // safe area'ya göre otomatik ayarlanır
+          backgroundColor: '#DFF7E2',
+          borderTopLeftRadius: 70,
+          borderTopRightRadius: 70,
+          paddingTop: 16,
+          paddingBottom: insets.bottom || 16,
+          paddingHorizontal: 60,
+          borderTopWidth: 0,
+          elevation: 0,
+          shadowOpacity: 0,
+        },
         tabBarShowLabel: false,
       }}
     >
@@ -87,22 +105,6 @@ export const TabNavigator = () => {
 };
 
 const styles = StyleSheet.create({
-  tabBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 108,
-    backgroundColor: '#DFF7E2',
-    borderTopLeftRadius: 70,
-    borderTopRightRadius: 70,
-    paddingTop: 36,
-    paddingBottom: 41,
-    paddingHorizontal: 60,
-    borderTopWidth: 0,
-    elevation: 0,
-    shadowOpacity: 0,
-  },
   iconContainer: {
     justifyContent: 'center',
     alignItems: 'center',

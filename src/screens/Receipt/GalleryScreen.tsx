@@ -1,3 +1,4 @@
+import { useAppInsets } from '../../hooks/useAppInsets';
 /**MODIFIED GalleryScreen.tsx
  * added ActivityIndicator and { scanReceipt } from ocr service to imports
  * added isProcessing state
@@ -21,6 +22,7 @@ import { scanReceipt } from '../../services/ocr';
 type GalleryScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const GalleryScreen = () => {
+  const { headerTop } = useAppInsets();
   const navigation = useNavigation<GalleryScreenNavigationProp>();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -112,7 +114,7 @@ const GalleryScreen = () => {
 
   return (
     <View style={styles.wrapper}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: headerTop }]}>
         <TouchableOpacity 
           style={styles.goBackButton}
           onPress={handleGoBack}
@@ -186,7 +188,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 36,
-    paddingTop: 69,
     marginBottom: 17,
   },
   goBackButton: {
@@ -221,7 +222,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: '90%',
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: 'transparent',
     borderRadius: 20,
     overflow: 'hidden',
     marginBottom: 30,
@@ -251,30 +252,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   controlsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '80%',
-    gap: 20,
-  },
-  chooseButton: {
-    flex: 1,
-    height: 45,
-    backgroundColor: colors.successLight,
-    borderRadius: 37,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  chooseButtonText: {
-    fontSize: 16,
-    fontFamily: fonts.semiBold,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  width: '90%',    
+  gap: 12,         
+},
+chooseButton: {
+  flex: 1,
+  height: 40,
+  backgroundColor: colors.successLight,
+  borderRadius: 37,
+  justifyContent: 'center',
+  alignItems: 'center',
+  paddingHorizontal: 8,  
+},
+chooseButtonText: {
+  fontSize: 14,         
+  fontFamily: fonts.semiBold,
+  fontWeight: '600',
+  color: colors.textSecondary,
+  textAlign: 'center',
+},
+continueButtonText: {
+  fontSize: 14,          
+  fontFamily: fonts.semiBold,
+  fontWeight: '600',
+  color: colors.textSecondary,
+},
   continueButton: {
     flex: 1,
-    height: 45,
+    height: 40,
     backgroundColor: colors.primary,
     borderRadius: 37,
     justifyContent: 'center',
@@ -283,13 +291,6 @@ const styles = StyleSheet.create({
   continueButtonDisabled: {
     backgroundColor: colors.successLight,
     opacity: 0.5,
-  },
-  continueButtonText: {
-    fontSize: 16,
-    fontFamily: fonts.semiBold,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    textAlign: 'center',
   },
 });
 

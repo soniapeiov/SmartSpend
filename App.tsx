@@ -4,12 +4,11 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import AppNavigator from './src/navigation/AppNavigator';
 import { AuthProvider } from './src/context/AuthContext';
-import { createTables } from './src/services/database';  // ✅ Import (yol değişti!)
+import { createTables } from './src/services/database';
 
 export default function App() {
   const isDarkMode = useColorScheme() === 'dark';
 
-  // ✅ Database başlat
   useEffect(() => {
     const initDatabase = async () => {
       try {
@@ -19,19 +18,17 @@ export default function App() {
         console.error('❌ Database initialization failed:', error);
       }
     };
-
     initDatabase();
   }, []);
 
   return (
     <AuthProvider>
       <SafeAreaProvider>
-        <StatusBar 
-          barStyle={isDarkMode ? 'light-content' : 'dark-content'} 
+        <StatusBar
+          barStyle={isDarkMode ? 'light-content' : 'dark-content'}
           backgroundColor="transparent"
           translucent
         />
-        
         <NavigationContainer>
           <AppNavigator />
         </NavigationContainer>

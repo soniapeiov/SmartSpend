@@ -1,3 +1,4 @@
+import { useAppInsets } from '../hooks/useAppInsets';
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -35,7 +36,8 @@ interface CategoryData {
 
 const AnalysisScreen = () => {
   const navigation = useNavigation<AnalysisScreenNavigationProp>();
-  const { firebaseUid } = useAuth(); // ✅ CHANGED: userId → firebaseUid
+  const { firebaseUid } = useAuth();
+  const { headerTop } = useAppInsets(); // ✅ CHANGED: userId → firebaseUid
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('daily');
 
   const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
@@ -208,7 +210,7 @@ const AnalysisScreen = () => {
 
   return (
     <View style={styles.wrapper}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: headerTop }]}>
         <TouchableOpacity
           style={styles.goBackButton}
           onPress={handleGoBack}
@@ -334,7 +336,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 36,
-    paddingTop: 69,
     marginBottom: 17,
   },
   goBackButton: {

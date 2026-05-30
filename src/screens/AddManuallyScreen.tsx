@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert,Platform, KeyboardAvoidingView } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Modal from 'react-native-modal';
@@ -18,6 +18,8 @@ import ShoppingIcon from '../assets/images/Shopping.svg';
 import { CommonActions } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { addExpense, updateExpense } from '../services/database';
+import { useAppInsets } from '../hooks/useAppInsets';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 type AddManuallyScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type AddManuallyScreenRouteProp = RouteProp<RootStackParamList, 'AddManuallyScreen'>;
@@ -29,12 +31,21 @@ const CATEGORIES: CategoryType[] = ['Food', 'Transportation', 'Shopping', 'Home'
 const AddManuallyScreen = () => {
   const navigation = useNavigation<AddManuallyScreenNavigationProp>();
   const route = useRoute<AddManuallyScreenRouteProp>();
-  const { firebaseUid } = useAuth(); // ✅ CHANGED: userId → firebaseUid
-  
+  const { firebaseUid } = useAuth();
+  const { headerTop } = useAppInsets();
+
   const editMode = route.params?.editMode || false;
   const expenseData = route.params?.expense;
 
-  const [date, setDate] = useState('');
+const [date, setDate] = useState(() => {
+  const today = new Date();
+  const day = String(today.getDate()).padStart(2, '0');
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const year = today.getFullYear();
+  return `${day}/${month}/${year}`;
+});
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [category, setCategory] = useState('');
   const [amount, setAmount] = useState('');
   const [isCategoryModalVisible, setIsCategoryModalVisible] = useState(false);
@@ -44,22 +55,25 @@ const AddManuallyScreen = () => {
       setDate(expenseData.date.replace(/\//g, ' / '));
       setCategory(expenseData.category);
       setAmount(expenseData.amount.toString());
+      const [day, month, year] = expenseData.date.split('/');
+      setSelectedDate(new Date(parseInt(year), parseInt(month) - 1, parseInt(day)));
     }
   }, [editMode, expenseData]);
 
-  const handleDateChange = (text: string) => {
-    const cleaned = text.replace(/[^0-9]/g, '');
-    let formatted = cleaned;
-    
-    if (cleaned.length >= 2) {
-      formatted = cleaned.slice(0, 2) + ' / ' + cleaned.slice(2);
-    }
-    if (cleaned.length >= 4) {
-      formatted = cleaned.slice(0, 2) + ' / ' + cleaned.slice(2, 4) + ' / ' + cleaned.slice(4, 8);
-    }
-    
-    setDate(formatted);
-  };
+  const handleDatePickerChange = (event: any, pickedDate?: Date) => {
+  if (event.type === 'dismissed') {
+    setShowDatePicker(false);
+    return;
+  }
+  if (pickedDate) {
+    setShowDatePicker(false);
+    setSelectedDate(pickedDate);
+    const day = String(pickedDate.getDate()).padStart(2, '0');
+    const month = String(pickedDate.getMonth() + 1).padStart(2, '0');
+    const year = pickedDate.getFullYear();
+    setDate(`${day}/${month}/${year}`);
+  }
+};
 
   const handleNotification = () => {
     navigation.navigate('NotificationScreen');
@@ -69,21 +83,9 @@ const AddManuallyScreen = () => {
     navigation.dispatch(
       CommonActions.reset({
         index: 0,
-        routes: [
-          {
-            name: 'Main',
-            state: {
-              routes: [{ name: 'Home' }],
-              index: 0,
-            },
-          },
-        ],
+        routes: [{ name: 'Main', state: { routes: [{ name: 'Home' }], index: 0 } }],
       })
     );
-  };
-
-  const handleCategoryPress = () => {
-    setIsCategoryModalVisible(true);
   };
 
   const handleCategorySelect = (selectedCategory: CategoryType) => {
@@ -93,18 +95,12 @@ const AddManuallyScreen = () => {
 
   const getCategoryIcon = (cat: string) => {
     switch (cat) {
-      case 'Food':
-        return <FoodIcon width={57} height={53} />;
-      case 'Other':
-        return <OtherIcon width={57} height={53} />;
-      case 'Transportation':
-        return <TransportationIcon width={57} height={53} />;
-      case 'Home':
-        return <HomeIcon width={57} height={53} />;
-      case 'Shopping':
-        return <ShoppingIcon width={57} height={53} />;
-      default:
-        return <OtherIcon width={57} height={53} />;
+      case 'Food': return <FoodIcon width={57} height={53} />;
+      case 'Other': return <OtherIcon width={57} height={53} />;
+      case 'Transportation': return <TransportationIcon width={57} height={53} />;
+      case 'Home': return <HomeIcon width={57} height={53} />;
+      case 'Shopping': return <ShoppingIcon width={57} height={53} />;
+      default: return <OtherIcon width={57} height={53} />;
     }
   };
 
@@ -112,150 +108,119 @@ const AddManuallyScreen = () => {
     navigation.dispatch(
       CommonActions.reset({
         index: 0,
-        routes: [
-          {
-            name: 'Main',
-            state: {
-              routes: [{ name: 'Home' }],
-              index: 0,
-            },
-          },
-        ],
+        routes: [{ name: 'Main', state: { routes: [{ name: 'Home' }], index: 0 } }],
       })
     );
   };
-
   const handleConfirm = async () => {
-    if (!firebaseUid) { // ✅ CHANGED
-      Alert.alert('Error', 'User not authenticated');
-      return;
+  if (!firebaseUid) {
+    Alert.alert('Error', 'User not authenticated');
+    return;
+  }
+
+  if (!date || !category || !amount) {
+    Alert.alert('Error', 'Please fill in all fields');
+    return;
+  }
+
+  const parsedAmount = parseFloat(amount);
+  if (isNaN(parsedAmount)) {
+    Alert.alert('Error', 'Invalid amount');
+    return;
+  }
+
+  const [day, month, year] = date.split('/');
+  const timestamp = new Date(
+    parseInt(year, 10),
+    parseInt(month, 10) - 1,
+    parseInt(day, 10),
+    0, 0, 0
+  ).getTime();
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); 
+  const selectedTimestamp = new Date(timestamp);
+  selectedTimestamp.setHours(0, 0, 0, 0);
+
+  if (selectedTimestamp.getTime() > today.getTime()) {
+    Alert.alert('Invalid Date', 'You cannot add an expense for a future date');
+    return;
+  }
+
+  try {
+    if (editMode && expenseData) {
+      await updateExpense(expenseData.id, parsedAmount, category as any, timestamp);
+      Alert.alert('Success', 'Expense updated successfully');
+    } else {
+      await addExpense(firebaseUid, parsedAmount, category as any, timestamp, undefined, 'manual');
+      Alert.alert('Success', 'Expense added successfully');
     }
 
-    if (!date || !category || !amount) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: 'Main', state: { routes: [{ name: 'Home' }], index: 0 } }],
+      })
+    );
+  } catch (error) {
+    console.error('❌ Error saving expense:', error);
+    Alert.alert('Error', 'Failed to save expense');
+  }
+};
 
-    const cleanDate = date.replace(/ \/ /g, '/');
-    const parsedAmount = parseFloat(amount);
+return (
+  <View style={styles.wrapper}>
+    <View style={[styles.header, { paddingTop: headerTop }]}>
+      <TouchableOpacity style={styles.goBackButton} onPress={handleGoBack} activeOpacity={0.7}>
+        <GoBackIcon width={19} height={16} />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>{editMode ? 'Edit Expense' : 'Add Manually'}</Text>
+      <TouchableOpacity style={styles.notificationButton} onPress={handleNotification} activeOpacity={0.7}>
+        <NotificationIcon width={14.57} height={18.86} />
+      </TouchableOpacity>
+    </View>
 
-    if (isNaN(parsedAmount)) {
-      Alert.alert('Error', 'Invalid amount');
-      return;
-    }
-
-    const [day, month, year] = cleanDate.split('/');
-    
-    const parsedDay = parseInt(day, 10);
-    const parsedMonth = parseInt(month, 10) - 1;
-    const parsedYear = parseInt(year, 10);
-    
-    const timestamp = new Date(
-      parsedYear,
-      parsedMonth,
-      parsedDay,
-      0,
-      0,
-      0
-    ).getTime();
-
-    try {
-      if (editMode && expenseData) {
-        await updateExpense(
-          expenseData.id,
-          parsedAmount,
-          category as any,
-          timestamp
-        );
-        Alert.alert('Success', 'Expense updated successfully');
-      } else {
-        await addExpense(
-          firebaseUid, // ✅ CHANGED: userId → firebaseUid
-          parsedAmount,
-          category as any,
-          timestamp,
-          undefined,
-          'manual'
-        );
-        Alert.alert('Success', 'Expense added successfully');
-      }
-
-      navigation.dispatch(
-        CommonActions.reset({
-          index: 0,
-          routes: [
-            {
-              name: 'Main',
-              state: {
-                routes: [{ name: 'Home' }],
-                index: 0,
-              },
-            },
-          ],
-        })
-      );
-    } catch (error) {
-      console.error('❌ Error saving expense:', error);
-      Alert.alert('Error', 'Failed to save expense');
-    }
-  };
-
-  return (
-    <View style={styles.wrapper}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.goBackButton}
-          onPress={handleGoBack}
-          activeOpacity={0.7}
-        >
-          <GoBackIcon width={19} height={16} />
-        </TouchableOpacity>
-
-        <Text style={styles.headerTitle}>
-          {editMode ? 'Edit Expense' : 'Add Manually'}
-        </Text>
-
-        <TouchableOpacity 
-          style={styles.notificationButton}
-          onPress={handleNotification}
-          activeOpacity={0.7}
-        >
-          <NotificationIcon width={14.57} height={18.86} />
-        </TouchableOpacity>
-      </View>
-
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <View style={styles.container}>
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Date</Text>
-            <View style={styles.dateContainer}>
-              <TextInput
-                style={styles.dateInput}
-                placeholder="DD / MM / YYYY"
-                placeholderTextColor="rgba(9, 48, 48, 0.45)"
-                value={date}
-                onChangeText={handleDateChange}
-                keyboardType="numeric"
-                maxLength={14}
-              />
+            <TouchableOpacity
+              style={styles.dateContainer}
+              onPress={() => setShowDatePicker(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={date ? styles.dateText : styles.datePlaceholder}>
+                {date || 'DD / MM / YYYY'}
+              </Text>
               <CalendarIcon width={20} height={20} />
-            </View>
+            </TouchableOpacity>
+            {showDatePicker && (
+              <DateTimePicker
+                value={selectedDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'compact' : 'default'}
+                onChange={handleDatePickerChange}
+                maximumDate={new Date()}
+              />
+            )}
           </View>
 
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Category</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.dropdownContainer}
               activeOpacity={0.7}
-              onPress={handleCategoryPress}
+              onPress={() => setIsCategoryModalVisible(true)}
             >
-              <Text style={[
-                styles.dropdownPlaceholder,
-                category && { color: colors.textSecondary }
-              ]}>
+              <Text style={[styles.dropdownPlaceholder, category && { color: colors.textSecondary }]}>
                 {category || 'Select the category'}
               </Text>
               <DropdownIcon width={20} height={20} />
@@ -275,58 +240,46 @@ const AddManuallyScreen = () => {
           </View>
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity 
-              style={styles.cancelButton}
-              activeOpacity={0.7}
-              onPress={handleCancel}
-            >
+            <TouchableOpacity style={styles.cancelButton} activeOpacity={0.7} onPress={handleCancel}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.confirmButton}
-              activeOpacity={0.7}
-              onPress={handleConfirm}
-            >
-              <Text style={styles.confirmButtonText}>
-                {editMode ? 'Update' : 'Confirm'}
-              </Text>
+            <TouchableOpacity style={styles.confirmButton} activeOpacity={0.7} onPress={handleConfirm}>
+              <Text style={styles.confirmButtonText}>{editMode ? 'Update' : 'Confirm'}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
       </View>
+    </KeyboardAvoidingView>
 
-      <Modal
-        isVisible={isCategoryModalVisible}
-        onBackdropPress={() => setIsCategoryModalVisible(false)}
-        onBackButtonPress={() => setIsCategoryModalVisible(false)}
-        style={styles.modal}
-        backdropOpacity={0.5}
-        animationIn="slideInUp"
-        animationOut="slideOutDown"
-      >
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Select Category</Text>
-          
-          {CATEGORIES.map((cat) => (
-            <TouchableOpacity
-              key={cat}
-              style={styles.categoryItem}
-              onPress={() => handleCategorySelect(cat)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.categoryIconContainer}>
-                {getCategoryIcon(cat)}
-              </View>
-              <Text style={styles.categoryName}>{cat}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </Modal>
-    </View>
-  );
+    <Modal
+      isVisible={isCategoryModalVisible}
+      onBackdropPress={() => setIsCategoryModalVisible(false)}
+      onBackButtonPress={() => setIsCategoryModalVisible(false)}
+      style={styles.modal}
+      backdropOpacity={0.5}
+      animationIn="slideInUp"
+      animationOut="slideOutDown"
+    >
+      <View style={styles.modalContent}>
+        <Text style={styles.modalTitle}>Select Category</Text>
+        {CATEGORIES.map((cat) => (
+          <TouchableOpacity
+            key={cat}
+            style={styles.categoryItem}
+            onPress={() => handleCategorySelect(cat)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.categoryIconContainer}>{getCategoryIcon(cat)}</View>
+            <Text style={styles.categoryName}>{cat}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </Modal>
+  </View>
+);
+
 };
-
+  
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
@@ -337,7 +290,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 36,
-    paddingTop: 69,
     marginBottom: 17,
   },
   goBackButton: {
@@ -394,6 +346,28 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlignVertical: 'center',
   },
+  dateContainer: {
+    width: '100%',
+    height: 44,
+    backgroundColor: colors.successLight,
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dateText: {
+    fontSize: 16,
+    fontFamily: fonts.regular,
+    fontWeight: '400',
+    color: colors.textSecondary,
+  },
+  datePlaceholder: {
+    fontSize: 16,
+    fontFamily: fonts.regular,
+    fontWeight: '400',
+    color: 'rgba(9, 48, 48, 0.45)',
+  },
   dropdownContainer: {
     width: '100%',
     height: 44,
@@ -446,25 +420,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: colors.textSecondary,
     textAlign: 'center',
-  },
-  dateContainer: {
-    width: '100%',
-    height: 44,
-    backgroundColor: colors.successLight,
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  dateInput: {
-    flex: 1,
-    fontSize: 16,
-    lineHeight: 20,
-    fontFamily: fonts.regular,
-    fontWeight: '400',
-    color: colors.textSecondary,
-    textAlignVertical: 'center',
   },
   modal: {
     justifyContent: 'flex-end',

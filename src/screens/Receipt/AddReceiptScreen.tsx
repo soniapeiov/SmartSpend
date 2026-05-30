@@ -1,3 +1,4 @@
+import { useAppInsets } from '../../hooks/useAppInsets';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -12,6 +13,7 @@ import { CommonActions } from '@react-navigation/native';
 type AddReceiptScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const AddReceiptScreen = () => {
+  const { headerTop } = useAppInsets();
   const navigation = useNavigation<AddReceiptScreenNavigationProp>();
 
   const handleScanCamera = () => {
@@ -27,7 +29,7 @@ const AddReceiptScreen = () => {
   };
 
   const handleCancel = () => {
-    // TabNavigator içindeki Home tab'ına git
+  
     navigation.dispatch(
       CommonActions.reset({
         index: 0,
@@ -45,7 +47,7 @@ const AddReceiptScreen = () => {
   };
 
   const handleGoBack = () => {
-    // TabNavigator içindeki Home tab'ına git
+   
     navigation.dispatch(
       CommonActions.reset({
         index: 0,
@@ -65,7 +67,7 @@ const AddReceiptScreen = () => {
   return (
     <View style={styles.wrapper}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: headerTop }]}>
         <TouchableOpacity 
           style={styles.goBackButton}
           onPress={handleGoBack}
@@ -131,7 +133,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 36,
-    paddingTop: 69,
     marginBottom: 17,
   },
   goBackButton: {

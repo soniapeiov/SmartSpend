@@ -28,6 +28,10 @@ export type RootStackParamList = {
       amount: number;
     };
   };
+
+  EditProfileScreen: undefined;
+  SettingsScreen: undefined;
+  SetLimitScreen: undefined; 
 };
 
 export type TabParamList = {

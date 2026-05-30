@@ -471,3 +471,5 @@ export default {
   getExpensesByPeriod,
   getExpensesByCategory,
 };
+
+export const getUser = getUserByFirebaseUid;

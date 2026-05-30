@@ -1,4 +1,5 @@
-import React from 'react';
+import { useAppInsets } from '../../hooks/useAppInsets';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -8,14 +9,36 @@ import { fonts } from '../../theme/fonts';
 import GoBackIcon from '../../assets/images/Gobackicon.svg';
 import NotificationIcon from '../../assets/images/Notificationicon.svg';
 import LogoutIcon from '../../assets/images/Logouticon.svg';
+import ProfileIcon from '../../assets/images/Profileicon.svg';
+import EditProfileIcon from '../../assets/images/EditProfile.svg';
+import SettingsIcon from '../../assets/images/Settings.svg';
 import { CommonActions } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
+import { getUser } from '../../services/database';
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const ProfileScreen = () => {
+  const { headerTop } = useAppInsets();
   const navigation = useNavigation<ProfileScreenNavigationProp>();
-  const { logout, user } = useAuth();
+  const { logout, firebaseUid } = useAuth();
+  const [userName, setUserName] = useState('User');
+
+  useEffect(() => {
+    const fetchUserName = async () => {
+      if (firebaseUid) {
+        try {
+          const userData = await getUser(firebaseUid);
+          if (userData) {
+            setUserName(userData.fullName);
+          }
+        } catch (error) {
+          console.error('Error fetching user:', error);
+        }
+      }
+    };
+    fetchUserName();
+  }, [firebaseUid]);
 
   const handleNotification = () => {
     navigation.navigate('NotificationScreen');
@@ -38,7 +61,14 @@ const ProfileScreen = () => {
     );
   };
 
-  // ✅ Firebase Logout
+  const handleEditProfile = () => {
+    navigation.navigate('EditProfileScreen');
+  };
+
+  const handleSettings = () => {
+    navigation.navigate('SettingsScreen');
+  };
+
   const handleLogout = async () => {
     Alert.alert(
       'Logout',
@@ -53,9 +83,8 @@ const ProfileScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await logout();  // ✅ Firebase + AuthContext temizle
+              await logout();
               console.log('✅ Logout successful');
-              // ✅ AppNavigator otomatik olarak Auth ekranlarına yönlendirecek
             } catch (error) {
               console.error('❌ Logout error:', error);
               Alert.alert('Error', 'Failed to logout. Please try again.');
@@ -69,8 +98,7 @@ const ProfileScreen = () => {
 
   return (
     <View style={styles.wrapper}>
-      {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: headerTop }]}>
         <TouchableOpacity 
           style={styles.goBackButton}
           onPress={handleGoBack}
@@ -90,19 +118,40 @@ const ProfileScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Main Content */}
       <View style={styles.container}>
+        <View style={styles.profileIconContainer}>
+          <ProfileIcon width={60} height={60} stroke="#FFFFFF" />
+        </View>
+
         <Text style={styles.userName}>
-          {user?.fullName || 'User'}
+          {userName}
         </Text>
 
         <TouchableOpacity 
-          style={styles.logoutButton}
+          style={styles.menuButton}
+          activeOpacity={0.7}
+          onPress={handleEditProfile}
+        >
+          <EditProfileIcon width={57} height={53} />
+          <Text style={styles.menuText}>Edit Profile</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.menuButton, styles.menuButtonSpacing]}
+          activeOpacity={0.7}
+          onPress={handleSettings}
+        >
+          <SettingsIcon width={57} height={53} />
+          <Text style={styles.menuText}>Settings</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.menuButton, styles.menuButtonSpacing]}
           activeOpacity={0.7}
           onPress={handleLogout}
         >
           <LogoutIcon width={57} height={53} />
-          <Text style={styles.logoutText}>Logout</Text>
+          <Text style={styles.menuText}>Logout</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -119,7 +168,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 36,
-    paddingTop: 69,
     marginBottom: 47,
   },
   goBackButton: {
@@ -146,25 +194,38 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
-    paddingTop: 47,
+    paddingTop: 30,
     alignItems: 'center',
   },
+  profileIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 60,
+    backgroundColor: '#6DB6FE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   userName: {
-    fontSize: 20,
+    fontSize: 25,
     fontFamily: fonts.bold,
     fontWeight: '700',
     color: '#0E3E3E',
     textAlign: 'center',
-    marginBottom: 100,
+    marginBottom: 50,
+    textTransform: 'capitalize',
   },
-  logoutButton: {
+  menuButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingLeft: 51,
+    paddingLeft: 70,
     width: '100%',
   },
-  logoutText: {
+  menuButtonSpacing: {
+    marginTop: 35,
+  },
+  menuText: {
     fontSize: 15,
     fontFamily: fonts.medium,
     fontWeight: '500',

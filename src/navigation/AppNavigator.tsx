@@ -15,12 +15,16 @@ import GalleryScreen from '../screens/Receipt/GalleryScreen';
 import ScanScreen from '../screens/Receipt/ScanScreen';
 import NotificationScreen from '../screens/NotificationScreen';
 import ReviewExpenseScreen from '../screens/Receipt/ReviewExpenseScreen';
+import AddManuallyScreen from '../screens/AddManuallyScreen';
+import AddReceiptScreen from '../screens/Receipt/AddReceiptScreen';
+import EditProfileScreen from '../screens/Profile/EditProfileScreen';
+import SettingsScreen from '../screens/Profile/SettingsScreen';
+import SetLimitScreen from '../screens/Profile/SetLimitScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator = () => {
   const { isAuthenticated, loading } = useAuth();
-
 
   if (loading) {
     return (
@@ -41,6 +45,11 @@ const AppNavigator = () => {
           <Stack.Screen name="ScanScreen" component={ScanScreen} />
           <Stack.Screen name="NotificationScreen" component={NotificationScreen} />
           <Stack.Screen name="ReviewExpenseScreen" component={ReviewExpenseScreen} />
+          <Stack.Screen name="AddManuallyScreen" component={AddManuallyScreen} />
+          <Stack.Screen name="AddReceiptScreen" component={AddReceiptScreen} />
+          <Stack.Screen name="EditProfileScreen" component={EditProfileScreen} />
+          <Stack.Screen name="SettingsScreen" component={SettingsScreen} />
+          <Stack.Screen name="SetLimitScreen" component={SetLimitScreen} /> 
         </>
       ) : (
         <>

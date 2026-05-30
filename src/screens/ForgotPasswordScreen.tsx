@@ -1,3 +1,4 @@
+import { useAppInsets } from '../hooks/useAppInsets';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Modal, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -10,6 +11,7 @@ import { firebaseAuth } from '../services/firebase';
 type ForgotPasswordScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ForgotPassword'>;
 
 const ForgotPasswordScreen = () => {
+  const { headerTop } = useAppInsets();
   const navigation = useNavigation<ForgotPasswordScreenNavigationProp>();
   const [email, setEmail] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -74,7 +76,7 @@ const ForgotPasswordScreen = () => {
       style={styles.wrapper} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: headerTop }]}>
         <Text style={styles.headerTitle}>Forgot Password</Text>
       </View>
 

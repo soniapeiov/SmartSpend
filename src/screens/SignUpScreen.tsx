@@ -1,3 +1,4 @@
+import { useAppInsets } from '../hooks/useAppInsets';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -11,6 +12,7 @@ import { useAuth } from '../context/AuthContext';
 type SignUpScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'SignUp'>;
 
 const SignUpScreen = () => {
+  const { headerTop } = useAppInsets();
   const navigation = useNavigation<SignUpScreenNavigationProp>();
   const { signup } = useAuth();
 
@@ -128,7 +130,7 @@ const SignUpScreen = () => {
       style={styles.wrapper} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: headerTop }]}>
         <Text style={styles.headerTitle}>Create Account</Text>
       </View>
 
